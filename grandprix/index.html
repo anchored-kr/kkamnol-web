@@ -30,12 +30,19 @@
         </div>
       </div>
 
-      <div class="prompt">사진 한 줄 평</div>
+      <div id="prompt" class="prompt" hidden>사진 한 줄 평</div>
+
+      <div id="startScreen" class="startscreen">
+        <div class="start-title">깜놀 그랑프리</div>
+        <p class="start-sub">사진 한 줄 평 · 당신이 출연자</p>
+        <button id="startBtn" class="btn btn--primary start-btn">▶ 시작하기</button>
+        <p class="start-hint">🔊 소리 켜고 플레이하세요</p>
+      </div>
 
       <div id="suspense" class="suspense" hidden>심사 중…</div>
       <div id="bigboard" class="bigboard" hidden>깜놀! 🎉</div>
 
-      <section id="play" class="bottombar">
+      <section id="play" class="bottombar" hidden>
         <form id="form" autocomplete="off">
           <input id="caption" maxlength="40" placeholder="전광판 사진에 한 마디…" />
           <button type="submit" class="btn btn--primary">답변! →</button>

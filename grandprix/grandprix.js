@@ -2,102 +2,66 @@ import * as THREE from "three";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => t * t * (3 - 2 * t);
 
-/* ============ 오디오 (Web Audio 합성, 무에셋) ============ */
+/* ============ 오디오 (Web Audio 합성) ============ */
 const Sfx = (() => {
-  let ctx = null;
-  let muted = false;
+  let ctx = null, muted = false;
   const ensure = () => {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   };
   const noise = (dur) => {
-    const c = ensure();
-    const len = Math.floor(c.sampleRate * dur);
-    const b = c.createBuffer(1, len, c.sampleRate);
-    const d = b.getChannelData(0);
+    const c = ensure(), len = Math.floor(c.sampleRate * dur);
+    const b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     return b;
   };
-  function click() {
-    if (muted) return;
-    const c = ensure(), t = c.currentTime;
-    const o = c.createOscillator(), g = c.createGain();
-    o.type = "square";
-    o.frequency.value = 440;
-    g.gain.setValueAtTime(0.1, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-    o.connect(g).connect(c.destination);
-    o.start(t);
-    o.stop(t + 0.09);
-  }
-  function drumroll(dur = 1.1) {
-    if (muted) return;
-    const c = ensure(), t = c.currentTime;
-    const src = c.createBufferSource();
-    src.buffer = noise(dur);
-    const f = c.createBiquadFilter();
-    f.type = "bandpass";
-    f.frequency.value = 190;
-    f.Q.value = 1.3;
-    const g = c.createGain();
-    g.gain.value = 0.12;
-    const lfo = c.createOscillator(), lg = c.createGain();
-    lfo.type = "square";
-    lfo.frequency.value = 17;
-    lg.gain.value = 0.16;
-    lfo.connect(lg).connect(g.gain);
-    src.connect(f).connect(g).connect(c.destination);
-    src.start(t); lfo.start(t);
-    src.stop(t + dur); lfo.stop(t + dur);
-  }
-  function impact() {
-    if (muted) return;
-    const c = ensure(), t = c.currentTime;
-    [523.25, 659.25, 783.99, 1046.5].forEach((fr) => {
-      const o = c.createOscillator(), g = c.createGain();
-      o.type = "triangle";
-      o.frequency.value = fr;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-      o.connect(g).connect(c.destination);
-      o.start(t); o.stop(t + 0.85);
-    });
-    const src = c.createBufferSource();
-    src.buffer = noise(0.25);
-    const f = c.createBiquadFilter();
-    f.type = "highpass";
-    f.frequency.value = 2200;
-    const g = c.createGain();
-    g.gain.setValueAtTime(0.22, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    src.connect(f).connect(g).connect(c.destination);
-    src.start(t);
-  }
-  function cheer(dur = 1.5) {
-    if (muted) return;
-    const c = ensure(), t = c.currentTime;
-    const src = c.createBufferSource();
-    src.buffer = noise(dur);
-    const f = c.createBiquadFilter();
-    f.type = "bandpass";
-    f.frequency.value = 1600;
-    f.Q.value = 0.5;
-    const g = c.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.13, t + 0.25);
-    g.gain.linearRampToValueAtTime(0.1, t + dur * 0.6);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(f).connect(g).connect(c.destination);
-    src.start(t);
-  }
+  const tone = (type, fr, t0, dur, peak) => {
+    const c = ensure(), o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.value = fr;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  };
   return {
-    click, drumroll, impact, cheer,
     resume: () => ensure(),
     toggle: () => (muted = !muted),
     get muted() { return muted; },
+    tick() { if (!muted) tone("triangle", 900, ensure().currentTime, 0.08, 0.12); },        // 슬롯 띵
+    click() { if (!muted) tone("square", 440, ensure().currentTime, 0.08, 0.09); },          // 레버
+    boom() {  // 두둥
+      if (muted) return; const c = ensure(), t = c.currentTime;
+      [72, 108].forEach((fr, i) => tone("sine", fr, t + i * 0.15, 0.55, 0.34));
+      const s = c.createBufferSource(); s.buffer = noise(0.2);
+      const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 240;
+      const g = c.createGain(); g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      s.connect(f).connect(g).connect(c.destination); s.start(t);
+    },
+    gong() {  // 땅~
+      if (muted) return; const c = ensure(), t = c.currentTime;
+      [392, 523, 784, 1046, 1318].forEach((fr, i) => tone("sine", fr * (1 + i * 0.002), t, 1.6, 0.14 / (i + 1)));
+    },
+    impact() {
+      if (muted) return; const c = ensure(), t = c.currentTime;
+      [523, 659, 784, 1046].forEach((fr) => tone("triangle", fr, t, 0.8, 0.13));
+      const s = c.createBufferSource(); s.buffer = noise(0.25);
+      const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 2200;
+      const g = c.createGain(); g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      s.connect(f).connect(g).connect(c.destination); s.start(t);
+    },
+    cheer(dur = 1.5) {
+      if (muted) return; const c = ensure(), t = c.currentTime;
+      const s = c.createBufferSource(); s.buffer = noise(dur);
+      const f = c.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1600; f.Q.value = 0.5;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.13, t + 0.25);
+      g.gain.linearRampToValueAtTime(0.1, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      s.connect(f).connect(g).connect(c.destination); s.start(t);
+    },
   };
 })();
 
@@ -110,185 +74,141 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0d0a);
-scene.fog = new THREE.Fog(0x0a0d0a, 16, 34);
+scene.fog = new THREE.Fog(0x0a0d0a, 18, 38);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 2.7, 9);
 
 scene.add(new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
   new THREE.MeshStandardMaterial({ color: 0x0e130f, roughness: 0.85, metalness: 0.15 })
 ).rotateX(-Math.PI / 2));
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 34), new THREE.MeshStandardMaterial({ color: 0x0b0f0c, roughness: 1 }));
+wall.position.set(0, 9, -12); scene.add(wall);
 
-const wall = new THREE.Mesh(
-  new THREE.PlaneGeometry(80, 34),
-  new THREE.MeshStandardMaterial({ color: 0x0b0f0c, roughness: 1 })
-);
-wall.position.set(0, 9, -12);
-scene.add(wall);
-
-/* ---- 전광판(스크린): 이모지 또는 실사진 ---- */
+/* ---- 전광판 ---- */
 const screenCanvas = document.createElement("canvas");
-screenCanvas.width = 1024;
-screenCanvas.height = 600;
+screenCanvas.width = 1024; screenCanvas.height = 600;
 const sctx = screenCanvas.getContext("2d");
 const screenTex = new THREE.CanvasTexture(screenCanvas);
 screenTex.colorSpace = THREE.SRGBColorSpace;
-const screenMat = new THREE.MeshBasicMaterial({ map: screenTex });
-const screen = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.2), screenMat);
-screen.position.set(0, 4.4, -8);
-scene.add(screen);
-
-let item = { emoji: "🐵", bg: "#ffd93b", legends: ["월요일의 나", "출근 싫다", "김대리.exe"] };
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.2), new THREE.MeshBasicMaterial({ map: screenTex }));
+screen.position.set(0, 4.4, -8); scene.add(screen);
 
 function drawEmojiScene(it) {
-  sctx.fillStyle = it.bg || "#ffd93b";
-  sctx.fillRect(0, 0, 1024, 600);
-  sctx.textAlign = "center";
-  sctx.textBaseline = "middle";
+  sctx.fillStyle = it.bg || "#ffd93b"; sctx.fillRect(0, 0, 1024, 600);
+  sctx.textAlign = "center"; sctx.textBaseline = "middle";
   sctx.font = '360px "Apple Color Emoji","Noto Color Emoji",sans-serif';
-  sctx.fillText(it.emoji || "🐵", 512, 300);
-  screenTex.needsUpdate = true;
+  sctx.fillText(it.emoji || "🐵", 512, 300); screenTex.needsUpdate = true;
 }
 function drawImageCover(img) {
-  const cw = 1024, ch = 600;
-  const r = Math.max(cw / img.width, ch / img.height);
-  const w = img.width * r, h = img.height * r;
-  sctx.fillStyle = "#000";
-  sctx.fillRect(0, 0, cw, ch);
-  sctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
-  screenTex.needsUpdate = true;
+  const r = Math.max(1024 / img.width, 600 / img.height), w = img.width * r, h = img.height * r;
+  sctx.fillStyle = "#000"; sctx.fillRect(0, 0, 1024, 600);
+  sctx.drawImage(img, (1024 - w) / 2, (600 - h) / 2, w, h); screenTex.needsUpdate = true;
 }
-function updateScreen(it) {
-  drawEmojiScene(it); // 즉시 폴백
-  if (it.image) {
-    const img = new Image();
-    img.crossOrigin = "anonymous"; // 같은 도메인이면 무해
-    img.onload = () => drawImageCover(img);
-    img.src = it.image; // 예: /grandprix/img/foo.jpg (동일 출처 → canvas 오염 없음)
-  }
+function drawPlaceholder() {
+  sctx.fillStyle = "#1a1407"; sctx.fillRect(0, 0, 1024, 600);
+  sctx.fillStyle = "#ffce2e"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
+  sctx.font = "800 230px 'Noto Sans KR',sans-serif"; sctx.fillText("?", 512, 310); screenTex.needsUpdate = true;
 }
-updateScreen(item);
+function drawItemToScreen(i) {
+  const it = items[i], img = itemImgs[i];
+  if (img && img.complete && img.naturalWidth) drawImageCover(img);
+  else drawEmojiScene(it);
+}
 
 /* ---- 골드 8각 프레임 ---- */
 function octShape(r) {
   const s = new THREE.Shape();
   for (let i = 0; i < 8; i++) {
     const a = Math.PI / 8 + (i * Math.PI) / 4;
-    const px = Math.cos(a) * r, py = Math.sin(a) * r;
-    i ? s.lineTo(px, py) : s.moveTo(px, py);
+    i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r);
   }
-  s.closePath();
-  return s;
+  s.closePath(); return s;
 }
 const ring = octShape(3.95);
 ring.holes.push(new THREE.Path(octShape(3.3).getPoints()));
 const frameGeo = new THREE.ExtrudeGeometry(ring, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1, bevelSegments: 1 });
 const frameMat = new THREE.MeshStandardMaterial({ color: 0xffc21e, emissive: 0xffae00, emissiveIntensity: 0.9, metalness: 0.7, roughness: 0.28 });
 const frame = new THREE.Mesh(frameGeo, frameMat);
-frame.position.set(0, 4.4, -8.4);
-frame.scale.set(1.55, 1.08, 1);
-scene.add(frame);
-
+frame.position.set(0, 4.4, -8.4); frame.scale.set(1.55, 1.08, 1); scene.add(frame);
 const frameLight = new THREE.PointLight(0xffb300, 40, 26, 2);
-frameLight.position.set(0, 4.4, -6.4);
-scene.add(frameLight);
+frameLight.position.set(0, 4.4, -6.4); scene.add(frameLight);
 
-/* ---- 심사위원 5인 (디테일·리액션) ---- */
+/* ---- 심사위원 5인 ---- */
 const judges = [];
 const SKINS = [0xe7b699, 0xf1c9a5, 0xd9a07a, 0xeabd96, 0xc98b66];
 const SUITS = [0x191e22, 0x20242a, 0x15181c, 0x232026, 0x1a1d1f];
+function pm(geo, mat, x, y, z) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
 function makeJudge(x, i) {
   const g = new THREE.Group();
-  const desk = new THREE.Mesh(
-    new THREE.BoxGeometry(1.95, 1.15, 0.75),
-    new THREE.MeshStandardMaterial({ color: 0x10140f, roughness: 0.8, metalness: 0.2 })
-  );
-  desk.position.set(0, 0.575, 0);
-  g.add(desk);
-
+  g.add(pm(new THREE.BoxGeometry(1.95, 1.15, 0.75), new THREE.MeshStandardMaterial({ color: 0x10140f, roughness: 0.8, metalness: 0.2 }), 0, 0.575, 0));
   const barMat = new THREE.MeshStandardMaterial({ color: 0xffd000, emissive: 0xffae00, emissiveIntensity: 0.7 });
-  for (let k = 0; k < 7; k++) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.07), barMat);
-    b.position.set(-0.62 + k * 0.205, 0.6, 0.39);
-    g.add(b);
-  }
-
+  for (let k = 0; k < 7; k++) g.add(pm(new THREE.BoxGeometry(0.15, 0.55, 0.07), barMat, -0.62 + k * 0.205, 0.6, 0.39));
   const person = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.66, 0.9, 0.42),
-    new THREE.MeshStandardMaterial({ color: SUITS[i], roughness: 0.7 })
-  );
-  body.position.set(0, 1.55, -0.05);
-  person.add(body);
-  // 보타이
-  const tie = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.1, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0xffce2e, emissive: 0x553f00, emissiveIntensity: 0.3 })
-  );
-  tie.position.set(0, 1.86, 0.17);
-  person.add(tie);
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.27, 24, 24),
-    new THREE.MeshStandardMaterial({ color: SKINS[i], roughness: 0.85 })
-  );
-  head.position.set(0, 2.12, -0.05);
-  person.add(head);
-  // 머리카락
-  const hair = new THREE.Mesh(
-    new THREE.SphereGeometry(0.285, 20, 16, 0, Math.PI * 2, 0, Math.PI / 1.7),
-    new THREE.MeshStandardMaterial({ color: 0x18120e, roughness: 0.95 })
-  );
-  hair.position.set(0, 2.16, -0.05);
-  person.add(hair);
-  // 안경(한 명)
+  person.add(pm(new THREE.BoxGeometry(0.66, 0.9, 0.42), new THREE.MeshStandardMaterial({ color: SUITS[i], roughness: 0.7 }), 0, 1.55, -0.05));
+  person.add(pm(new THREE.BoxGeometry(0.22, 0.1, 0.05), new THREE.MeshStandardMaterial({ color: 0xffce2e, emissive: 0x553f00, emissiveIntensity: 0.3 }), 0, 1.86, 0.17));
+  person.add(pm(new THREE.SphereGeometry(0.27, 24, 24), new THREE.MeshStandardMaterial({ color: SKINS[i], roughness: 0.85 }), 0, 2.12, -0.05));
+  person.add(pm(new THREE.SphereGeometry(0.285, 20, 16, 0, Math.PI * 2, 0, Math.PI / 1.7), new THREE.MeshStandardMaterial({ color: 0x18120e, roughness: 0.95 }), 0, 2.16, -0.05));
   if (i === 3) {
     const gm = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5, roughness: 0.4 });
-    [-0.1, 0.1].forEach((gx) => {
-      const lens = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.015, 8, 16), gm);
-      lens.position.set(gx, 2.12, 0.22);
-      person.add(lens);
-    });
+    [-0.1, 0.1].forEach((gx) => person.add(pm(new THREE.TorusGeometry(0.07, 0.015, 8, 16), gm, gx, 2.12, 0.22)));
   }
   g.add(person);
-
   g.position.set(x, 0, -3.7);
   g.userData = { barMat, person, pulse: 0 };
-  judges.push(g);
-  return g;
+  judges.push(g); return g;
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
 
-/* ---- 조명 ---- */
-scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.55));
-scene.add(new THREE.AmbientLight(0x223322, 0.55));
-const key = new THREE.SpotLight(0xfff2cc, 70, 32, 0.62, 0.45, 1.2);
-key.position.set(0, 11, 7);
-key.target.position.set(0, 1, -2);
-scene.add(key, key.target);
-const rim = new THREE.PointLight(0x66ccff, 12, 24, 2);
-rim.position.set(-7, 5, 2);
-scene.add(rim);
+/* ---- 출연자(나): 뒷모습 + 단상 ---- */
+const stand = new THREE.Group();
+stand.add(pm(new THREE.BoxGeometry(1.7, 1.6, 0.75), new THREE.MeshStandardMaterial({ color: 0x12110d, metalness: 0.3, roughness: 0.6 }), 0, 0.8, 0));
+stand.add(pm(new THREE.BoxGeometry(1.78, 0.14, 0.83), new THREE.MeshStandardMaterial({ color: 0xffce2e, emissive: 0xffae00, emissiveIntensity: 0.6 }), 0, 1.6, 0));
+stand.add(pm(new THREE.BoxGeometry(0.92, 1.0, 0.5), new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.7 }), 0, 1.85, 0));
+stand.add(pm(new THREE.SphereGeometry(0.33, 24, 24), new THREE.MeshStandardMaterial({ color: 0xe7b699, roughness: 0.85 }), 0, 2.62, 0));
+stand.add(pm(new THREE.SphereGeometry(0.35, 22, 18), new THREE.MeshStandardMaterial({ color: 0x161210, roughness: 0.95 }), 0, 2.7, 0.03));
+stand.position.set(0, 0, 3.4);
+scene.add(stand);
+const spot = new THREE.SpotLight(0xfff0d0, 70, 20, 0.5, 0.5, 1.2);
+spot.position.set(0, 9, 7); spot.target.position.set(0, 2, 3.4); scene.add(spot, spot.target);
 
-/* ---- 루프 (카메라 줌 + 심사위원 바운스) ---- */
-const cam = { zoom: 0, zoomCur: 0 };
-let t = 0;
+/* ---- 조명 ---- */
+scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.5));
+scene.add(new THREE.AmbientLight(0x223322, 0.5));
+const key = new THREE.SpotLight(0xfff2cc, 60, 34, 0.62, 0.45, 1.2);
+key.position.set(0, 12, 8); key.target.position.set(0, 1, -2); scene.add(key, key.target);
+const rim = new THREE.PointLight(0x66ccff, 12, 24, 2); rim.position.set(-7, 5, 2); scene.add(rim);
+
+/* ---- 카메라 컨트롤러 (establish → play) ---- */
+const cam = {
+  estPos: new THREE.Vector3(0.9, 5.7, 12), estLook: new THREE.Vector3(0, 3.5, -3),
+  playPos: new THREE.Vector3(0, 2.7, 8.2), playLook: new THREE.Vector3(0, 4.1, -8),
+  zoom: 0, zoomCur: 0, punch: 0, punchCur: 0, shake: 0,
+};
+let t = 0, framePulse = 0;
 function animate() {
   requestAnimationFrame(animate);
   t += 0.016;
-  cam.zoomCur += (cam.zoom - cam.zoomCur) * 0.08;
-  camera.position.x = Math.sin(t * 0.25) * 0.55;
-  camera.position.y = 2.7 + Math.sin(t * 0.4) * 0.07;
-  camera.position.z = 9 - cam.zoomCur * 1.9;
-  camera.lookAt(0, 4.1, -8);
-  frameMat.emissiveIntensity = 0.8 + Math.sin(t * 2.2) * 0.18;
+  cam.zoomCur += (cam.zoom - cam.zoomCur) * 0.045;
+  cam.punchCur += (cam.punch - cam.punchCur) * 0.1;
+  const z = ease(cam.zoomCur);
+  let sh = 0;
+  if (cam.shake > 0.001) { cam.shake *= 0.88; sh = cam.shake; }
+  camera.position.set(
+    lerp(cam.estPos.x, cam.playPos.x, z) + Math.sin(t * 0.25) * 0.55 * z + (Math.random() - 0.5) * sh * 0.35,
+    lerp(cam.estPos.y, cam.playPos.y, z) + Math.sin(t * 0.4) * 0.07 * z + (Math.random() - 0.5) * sh * 0.35,
+    lerp(cam.estPos.z, cam.playPos.z, z) - cam.punchCur * 1.6
+  );
+  camera.lookAt(
+    lerp(cam.estLook.x, cam.playLook.x, z),
+    lerp(cam.estLook.y, cam.playLook.y, z),
+    lerp(cam.estLook.z, cam.playLook.z, z)
+  );
+  frameMat.emissiveIntensity = 0.8 + Math.sin(t * 2.2) * 0.18 + framePulse;
+  if (framePulse > 0.001) framePulse *= 0.9;
   judges.forEach((j) => {
-    if (j.userData.pulse > 0.001) {
-      j.userData.pulse *= 0.9;
-      j.userData.person.position.y = Math.abs(Math.sin(t * 22)) * j.userData.pulse * 0.22;
-    } else {
-      j.userData.person.position.y = 0;
-    }
+    if (j.userData.pulse > 0.001) { j.userData.pulse *= 0.9; j.userData.person.position.y = Math.abs(Math.sin(t * 22)) * j.userData.pulse * 0.22; }
+    else j.userData.person.position.y = 0;
   });
   renderer.render(scene, camera);
 }
@@ -296,178 +216,146 @@ animate();
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ---- 연출 효과 ---- */
-function flashScreen() {
-  const f = $("#flash");
-  f.classList.remove("on");
-  void f.offsetWidth;
-  f.classList.add("on");
-}
+/* ---- 효과 ---- */
+function flashScreen() { const f = $("#flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); }
 function burstConfetti() {
-  const wrap = $("#confetti");
-  const colors = ["#ffce2e", "#ff5a5f", "#5ad1ff", "#7af0a0", "#ff7ab8", "#ffffff"];
+  const wrap = $("#confetti"), colors = ["#ffce2e", "#ff5a5f", "#5ad1ff", "#7af0a0", "#ff7ab8", "#ffffff"];
   for (let i = 0; i < 46; i++) {
     const d = document.createElement("div");
-    d.className = "conf";
-    d.style.left = Math.random() * 100 + "vw";
-    d.style.background = colors[i % colors.length];
-    d.style.animationDuration = 1.6 + Math.random() * 1.4 + "s";
-    d.style.animationDelay = Math.random() * 0.25 + "s";
-    d.style.transform = `rotate(${Math.random() * 360}deg)`;
-    wrap.appendChild(d);
+    d.className = "conf"; d.style.left = Math.random() * 100 + "vw"; d.style.background = colors[i % colors.length];
+    d.style.animationDuration = 1.6 + Math.random() * 1.4 + "s"; d.style.animationDelay = Math.random() * 0.25 + "s";
+    d.style.transform = `rotate(${Math.random() * 360}deg)`; wrap.appendChild(d);
     setTimeout(() => d.remove(), 3200);
   }
 }
 
+/* ---- 데이터 ---- */
+let items = [{ emoji: "🐵", bg: "#ffd93b", legends: ["월요일의 나", "출근 싫다", "김대리.exe"] }];
+let itemImgs = [];
+let chosenIndex = 0;
+let item = items[0];
+drawPlaceholder();
+
+fetch("/jaemok/daily.json", { cache: "no-store" })
+  .then((r) => r.json())
+  .then((data) => {
+    items = data;
+    chosenIndex = Math.floor(Date.now() / 86400000) % data.length;
+    item = items[chosenIndex];
+    itemImgs = data.map((it) => { if (!it.image) return null; const im = new Image(); im.crossOrigin = "anonymous"; im.src = it.image; return im; });
+    drawPlaceholder();
+  })
+  .catch(() => drawPlaceholder());
+
+/* ---- 인트로: 슬롯 → 두둥/땅 → 줌인 ---- */
+let started = false;
+async function intro() {
+  if (started) return; started = true;
+  Sfx.resume();
+  $("#startScreen").hidden = true;
+
+  // 슬롯 (삭삭삭 + 띵띵)
+  const n = items.length;
+  let i = Math.floor(Date.now() / 997) % n;
+  const ticks = 24;
+  for (let k = 0; k < ticks; k++) {
+    i = (i + 1) % n;
+    drawItemToScreen(i);
+    Sfx.tick();
+    await sleep(50 + (k / ticks) * (k / ticks) * 360); // 가속 → 감속
+  }
+  // 딱! 결정
+  drawItemToScreen(chosenIndex);
+  Sfx.boom();
+  await sleep(240);
+  Sfx.gong();
+  flashScreen();
+  framePulse = 2.6;
+  cam.shake = 1.3;
+  await sleep(950);
+
+  // 내 캐릭터로 줌인
+  cam.zoom = 1;
+  await sleep(1500);
+
+  // 타이핑 시작
+  $("#prompt").hidden = false;
+  $("#play").hidden = false;
+  $("#caption").focus();
+}
+
 /* ---- 반응 시퀀스 ---- */
 let busy = false;
+function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 async function judgeReaction(caption) {
-  if (busy) return;
-  busy = true;
+  if (busy) return; busy = true;
   Sfx.resume();
   $("#play").hidden = true;
-
-  // 긴장 (드럼롤 + 줌인)
   $("#suspense").hidden = false;
-  cam.zoom = 1;
-  Sfx.drumroll(1.1);
-  await sleep(1050);
+  cam.punch = 1;
+  for (let k = 0; k < 9; k++) { Sfx.tick(); await sleep(110); } // 드럼롤 대용
   $("#suspense").hidden = true;
+  for (let i = 0; i < judges.length; i++) { judges[i].userData.barMat.emissiveIntensity = 2.6; judges[i].userData.pulse = 1; Sfx.click(); await sleep(105); }
 
-  // 심사위원 순차 점등
-  for (let i = 0; i < judges.length; i++) {
-    judges[i].userData.barMat.emissiveIntensity = 2.6;
-    judges[i].userData.pulse = 1;
-    Sfx.click();
-    await sleep(105);
-  }
-
-  // 깜놀 보드 슬램
   const bb = $("#bigboard");
-  bb.hidden = false;
-  bb.classList.remove("slam");
-  void bb.offsetWidth;
-  bb.classList.add("slam");
-  flashScreen();
-  burstConfetti();
-  Sfx.impact();
-  Sfx.cheer(1.5);
-  cam.zoom = 0;
-
+  bb.hidden = false; bb.classList.remove("slam"); void bb.offsetWidth; bb.classList.add("slam");
+  flashScreen(); burstConfetti(); framePulse = 2.6; cam.shake = 1.0;
+  Sfx.impact(); Sfx.cheer(1.5);
+  cam.punch = 0;
   await sleep(650);
   $("#myCaption").textContent = `“${caption}”`;
   $("#legendList").innerHTML = (item.legends || []).map((l) => `<li>${escapeHtml(l)}</li>`).join("");
   $("#result").hidden = false;
   busy = false;
 }
-function escapeHtml(s) {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-}
 
-/* ---- 공유 결과 카드 (1080x1350) ---- */
-function buildShareCard(caption) {
-  const cv = document.createElement("canvas");
-  cv.width = 1080; cv.height = 1350;
-  const x = cv.getContext("2d");
-  const g = x.createLinearGradient(0, 0, 0, 1350);
-  g.addColorStop(0, "#16140d");
-  g.addColorStop(1, "#0c0e0a");
-  x.fillStyle = g;
-  x.fillRect(0, 0, 1080, 1350);
-  x.textAlign = "center";
-  x.fillStyle = "#ffce2e";
-  x.font = "800 44px 'Noto Sans KR', sans-serif";
-  x.fillText("깜놀 그랑프리 · 사진 한 줄 평", 540, 116);
-  // 전광판 사진 (스크린 캔버스 재사용)
-  const pw = 900, ph = pw * (600 / 1024), py = 180;
-  x.save();
-  x.beginPath();
-  const r = 36, px = 90;
-  x.moveTo(px + r, py); x.arcTo(px + pw, py, px + pw, py + ph, r);
-  x.arcTo(px + pw, py + ph, px, py + ph, r); x.arcTo(px, py + ph, px, py, r);
-  x.arcTo(px, py, px + pw, py, r); x.closePath();
-  x.lineWidth = 14; x.strokeStyle = "#ffc21e"; x.stroke(); x.clip();
-  x.drawImage(screenCanvas, px, py, pw, ph);
-  x.restore();
-  // 합격 도장
-  x.save();
-  x.translate(900, 200 + ph - 60); x.rotate(-0.22);
-  x.strokeStyle = "#e0245e"; x.fillStyle = "#e0245e"; x.lineWidth = 9;
-  x.beginPath(); x.arc(0, 0, 84, 0, Math.PI * 2); x.stroke();
-  x.font = "800 50px 'Noto Sans KR', sans-serif"; x.textBaseline = "middle";
-  x.fillText("깜놀!", 0, 4); x.restore();
-  x.textBaseline = "alphabetic";
-  // 내 답변
-  x.fillStyle = "#fff";
-  x.font = "800 60px 'Noto Sans KR', sans-serif";
-  wrapText(x, `“${caption}”`, 540, 1010, 920, 84);
-  // 워터마크
-  x.fillStyle = "#8a8a80";
-  x.font = "500 34px 'Noto Sans KR', sans-serif";
-  x.fillText("@kkamnol.interactive · kkamnol.xyz/grandprix", 540, 1290);
-  return cv;
-}
+/* ---- 공유 카드 ---- */
+function roundRectPath(x, ctx, X, Y, W, H, R) { ctx.beginPath(); ctx.moveTo(X + R, Y); ctx.arcTo(X + W, Y, X + W, Y + H, R); ctx.arcTo(X + W, Y + H, X, Y + H, R); ctx.arcTo(X, Y + H, X, Y, R); ctx.arcTo(X, Y, X + W, Y, R); ctx.closePath(); }
 function wrapText(ctx, text, cx, cy, maxW, lh) {
-  const chars = [...text];
-  let line = "";
-  const lines = [];
-  for (const ch of chars) {
-    if (ctx.measureText(line + ch).width > maxW && line) { lines.push(line); line = ch; }
-    else line += ch;
-  }
+  const chars = [...text]; let line = ""; const lines = [];
+  for (const ch of chars) { if (ctx.measureText(line + ch).width > maxW && line) { lines.push(line); line = ch; } else line += ch; }
   if (line) lines.push(line);
-  const y0 = cy - ((lines.length - 1) * lh) / 2;
-  lines.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh));
+  const y0 = cy - ((lines.length - 1) * lh) / 2; lines.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lh));
 }
 let lastCaption = "";
 async function shareResult() {
   await (document.fonts && document.fonts.ready);
-  const cv = buildShareCard(lastCaption);
+  const cv = document.createElement("canvas"); cv.width = 1080; cv.height = 1350;
+  const x = cv.getContext("2d");
+  const g = x.createLinearGradient(0, 0, 0, 1350); g.addColorStop(0, "#16140d"); g.addColorStop(1, "#0c0e0a");
+  x.fillStyle = g; x.fillRect(0, 0, 1080, 1350);
+  x.textAlign = "center"; x.fillStyle = "#ffce2e"; x.font = "800 44px 'Noto Sans KR',sans-serif";
+  x.fillText("깜놀 그랑프리 · 사진 한 줄 평", 540, 116);
+  const pw = 900, ph = pw * (600 / 1024), py = 180, px = 90;
+  x.save(); roundRectPath(0, x, px, py, pw, ph, 36); x.lineWidth = 14; x.strokeStyle = "#ffc21e"; x.stroke(); x.clip();
+  x.drawImage(screenCanvas, px, py, pw, ph); x.restore();
+  x.save(); x.translate(900, py + ph - 60); x.rotate(-0.22);
+  x.strokeStyle = "#e0245e"; x.fillStyle = "#e0245e"; x.lineWidth = 9;
+  x.beginPath(); x.arc(0, 0, 84, 0, Math.PI * 2); x.stroke();
+  x.font = "800 50px 'Noto Sans KR',sans-serif"; x.textBaseline = "middle"; x.fillText("깜놀!", 0, 4); x.restore();
+  x.textBaseline = "alphabetic"; x.fillStyle = "#fff"; x.font = "800 60px 'Noto Sans KR',sans-serif";
+  wrapText(x, `“${lastCaption}”`, 540, 1010, 920, 84);
+  x.fillStyle = "#8a8a80"; x.font = "500 34px 'Noto Sans KR',sans-serif";
+  x.fillText("@kkamnol.interactive · kkamnol.xyz/grandprix", 540, 1290);
   cv.toBlob(async (blob) => {
     if (!blob) return;
     const file = new File([blob], "kkamnol-grandprix.png", { type: "image/png" });
     const data = { files: [file], title: "깜놀 그랑프리", text: "내 깜놀 그랑프리 답변 ㅋㅋ kkamnol.xyz/grandprix" };
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share(data); } catch (e) {}
-      return;
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "kkamnol-grandprix.png"; a.click();
-    URL.revokeObjectURL(url);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share(data); } catch (e) {} return; }
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "kkamnol-grandprix.png"; a.click(); URL.revokeObjectURL(url);
   }, "image/png");
 }
 
-/* ---- 데일리 콘텐츠 ---- */
-fetch("/jaemok/daily.json", { cache: "no-store" })
-  .then((r) => r.json())
-  .then((data) => {
-    item = data[Math.floor(Date.now() / 86400000) % data.length];
-    updateScreen(item);
-  })
-  .catch(() => {});
-
 /* ---- 이벤트 ---- */
-$("#form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const v = $("#caption").value.trim();
-  if (!v) return;
-  lastCaption = v;
-  judgeReaction(v);
-});
+$("#startBtn").addEventListener("click", intro);
+$("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", () => {
-  $("#result").hidden = true;
-  $("#bigboard").hidden = true;
-  $("#play").hidden = false;
-  $("#caption").value = "";
+  $("#result").hidden = true; $("#bigboard").hidden = true; $("#play").hidden = false; $("#caption").value = "";
   judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
+  $("#caption").focus();
 });
 $("#share").addEventListener("click", shareResult);
-$("#mute").addEventListener("click", (e) => {
-  const m = Sfx.toggle();
-  e.currentTarget.textContent = m ? "🔇" : "🔊";
-});
+$("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });
