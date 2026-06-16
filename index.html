@@ -66,6 +66,18 @@
       </span>
     </footer>
 
+    <!-- 데스크톱: 게임을 폰 목업 안에서 미리보기 (아래에서 올라옴) -->
+    <div id="phoneOverlay" class="phone-overlay" hidden>
+      <div class="phone-backdrop"></div>
+      <a class="phone-fullscreen" target="_blank" rel="noopener">전체화면 ↗</a>
+      <button class="phone-close" type="button" aria-label="닫기">✕</button>
+      <div class="phone">
+        <div class="phone-device">
+          <iframe class="phone-screen" title="게임 미리보기" allow="autoplay"></iframe>
+        </div>
+      </div>
+    </div>
+
     <script src="/games.js" defer></script>
   </body>
 </html>

@@ -89,3 +89,49 @@ function renderCards() {
 }
 
 renderCards();
+
+/* ===== 데스크톱: 폰 목업 안에서 게임 미리보기 / 모바일: 풀스크린 이동 ===== */
+function isDesktop() {
+  return window.matchMedia("(min-width: 820px)").matches;
+}
+function setupPhonePreview() {
+  const overlay = document.getElementById("phoneOverlay");
+  if (!overlay) return;
+  const iframe = overlay.querySelector(".phone-screen");
+  const fsLink = overlay.querySelector(".phone-fullscreen");
+  let closeTimer = null;
+
+  function open(url) {
+    clearTimeout(closeTimer);
+    iframe.src = url;
+    fsLink.href = url;
+    overlay.hidden = false;
+    requestAnimationFrame(() => overlay.classList.add("open")); // 슬라이드업
+    document.body.style.overflow = "hidden";
+  }
+  function close() {
+    overlay.classList.remove("open");
+    document.body.style.overflow = "";
+    closeTimer = setTimeout(() => {
+      overlay.hidden = true;
+      iframe.src = "about:blank"; // 게임/사운드 정지
+    }, 550);
+  }
+
+  document.querySelectorAll("a.appcard").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      const href = a.getAttribute("href");
+      if (!href || /^https?:/.test(href)) return; // 외부 링크는 그대로
+      if (!isDesktop()) return; // 모바일: 기존처럼 풀스크린 이동
+      e.preventDefault();
+      open(href);
+    });
+  });
+
+  overlay.querySelector(".phone-close").addEventListener("click", close);
+  overlay.querySelector(".phone-backdrop").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("open")) close();
+  });
+}
+setupPhonePreview();
