@@ -161,21 +161,26 @@ function makeJudge(x, i) {
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
 
-/* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 ---- */
-function makeLabel(text) {
-  const c = document.createElement("canvas"); c.width = 256; c.height = 140;
-  const x = c.getContext("2d");
+/* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 + 닉네임 라벨 ---- */
+const labelCanvas = document.createElement("canvas");
+labelCanvas.width = 420; labelCanvas.height = 140;
+const labelTex = new THREE.CanvasTexture(labelCanvas);
+labelTex.colorSpace = THREE.SRGBColorSpace;
+function drawLabel(text) {
+  const c = labelCanvas, x = c.getContext("2d");
+  x.clearRect(0, 0, c.width, c.height);
+  x.font = "800 52px 'Noto Sans KR','Apple Color Emoji',sans-serif";
+  const tw = x.measureText(text).width;
+  const w = Math.min(c.width - 16, tw + 56), h = 90, ox = (c.width - w) / 2, oy = (c.height - h) / 2, r = 28;
   x.fillStyle = "#ff5a5f";
-  const r = 30, w = 170, h = 92, ox = (256 - w) / 2, oy = (140 - h) / 2;
   x.beginPath(); x.moveTo(ox + r, oy); x.arcTo(ox + w, oy, ox + w, oy + h, r); x.arcTo(ox + w, oy + h, ox, oy + h, r); x.arcTo(ox, oy + h, ox, oy, r); x.arcTo(ox, oy, ox + w, oy, r); x.closePath(); x.fill();
-  x.fillStyle = "#fff"; x.font = "800 60px 'Noto Sans KR',sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
-  x.fillText(text, 128, 74);
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-  sp.scale.set(1.0, 0.55, 1);
-  return sp;
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(text, c.width / 2, oy + h / 2 + 2);
+  labelTex.needsUpdate = true;
 }
-const meSprite = makeLabel("나");
+drawLabel("나");
+const meSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthTest: false }));
+meSprite.scale.set(1.9, 0.63, 1);
 meSprite.position.set(0, 3.05, -3.5);
 scene.add(meSprite);
 // 가운데 캐릭터: 핑크 보타이로 구분
@@ -291,6 +296,7 @@ async function slotReveal(targetIndex) {
 async function intro() {
   if (started) return; started = true;
   Sfx.resume();
+  readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
   await slotReveal(chosenIndex);
   cam.zoom = 1;
@@ -375,6 +381,23 @@ async function shareResult() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share(data); } catch (e) {} return; }
     const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "kkamnol-grandprix.png"; a.click(); URL.revokeObjectURL(url);
   }, "image/png");
+}
+
+/* ---- 닉네임 / 국적 ---- */
+const player = { nick: "나", flag: "🇰🇷", nation: "한국" };
+const nickEl = $("#nick"), natEl = $("#nat");
+try {
+  const s = JSON.parse(localStorage.getItem("gp-player") || "{}");
+  if (s.nick) { nickEl.value = s.nick; $("#startBtn").disabled = false; }
+  if (s.nat) natEl.value = s.nat;
+} catch (e) {}
+nickEl.addEventListener("input", () => { $("#startBtn").disabled = !nickEl.value.trim(); });
+function readPlayer() {
+  player.nick = nickEl.value.trim() || "나";
+  const [flag, nation] = (natEl.value || "🇰🇷|한국").split("|");
+  player.flag = flag; player.nation = nation;
+  localStorage.setItem("gp-player", JSON.stringify({ nick: player.nick, nat: natEl.value }));
+  drawLabel(`${player.flag} ${player.nick}`);
 }
 
 /* ---- 이벤트 ---- */

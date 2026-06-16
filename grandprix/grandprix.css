@@ -66,5 +66,16 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
   text-shadow: 0 4px 36px rgba(255,176,0,0.6), 0 0 4px #fff;
 }
 .start-sub { color: rgba(255,255,255,0.85); font-size: clamp(14px, 3vw, 18px); margin: 0; font-weight: 500; }
-.start-btn { margin-top: 16px; padding: 18px 42px; font-size: 20px; }
+.start-form { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+.start-input, .start-select {
+  padding: 14px 18px; border-radius: 999px; border: 2px solid rgba(255, 206, 46, 0.5);
+  background: rgba(10, 12, 10, 0.72); color: #fff; font-size: 16px; font-family: inherit; outline: none;
+}
+.start-input { width: 170px; }
+.start-input::placeholder { color: rgba(255, 255, 255, 0.45); }
+.start-input:focus, .start-select:focus { border-color: #ffce2e; box-shadow: 0 0 0 4px rgba(255, 206, 46, 0.18); }
+.start-select { cursor: pointer; }
+.start-select option { color: #111; }
+.start-btn { margin-top: 18px; padding: 18px 42px; font-size: 20px; }
+.start-btn[disabled] { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 .start-hint { color: rgba(255,255,255,0.55); font-size: 13px; margin: 6px 0 0; }
