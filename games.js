@@ -1,7 +1,16 @@
-// 포트폴리오를 추가하려면 이 배열에 객체 하나만 추가하면 카드가 생깁니다.
-//   status: "live" + url  → 클릭 시 플레이로 연결되는 카드 (썸네일 hover에 Play →)
-//   status: "soon"        → Coming soon 카드
-//   thumb (선택)          → 썸네일 이미지 URL. 없으면 emoji 플레이스홀더 사용.
+// 포트폴리오를 추가하려면 GAMES 배열에 객체 하나만 추가하면 카드가 생깁니다.
+//   status: "live" + url → 클릭 시 플레이로 연결
+//   status: "soon"       → Coming soon
+//   color                → 카드 그라데이션 키 (아래 GRADIENTS)
+const GRADIENTS = {
+  pink: "linear-gradient(145deg,#ffd1e8,#ff7ab8)",
+  mint: "linear-gradient(145deg,#cff5e7,#84e2bf)",
+  sky: "linear-gradient(145deg,#d6ecff,#8fc2ff)",
+  peach: "linear-gradient(145deg,#ffe3c7,#ffb27a)",
+  lavender: "linear-gradient(145deg,#e7dbff,#b89cff)",
+  ghost: "linear-gradient(145deg,#f4f4f6,#e8e8ec)",
+};
+
 const GAMES = [
   {
     title: "깜놀타임",
@@ -9,50 +18,57 @@ const GAMES = [
     emoji: "😮",
     status: "soon",
     url: "",
-    thumb: "",
+    color: "pink",
   },
 ];
 
-function gameCard(g) {
+function cardHTML(g, rotation) {
   const isLive = g.status === "live" && g.url;
+  const grad = GRADIENTS[g.color] || GRADIENTS.sky;
   const badge = isLive
-    ? '<span class="badge badge--live">LIVE</span>'
-    : '<span class="badge">COMING SOON</span>';
-  const thumbInner = g.thumb
-    ? `<img src="${g.thumb}" alt="${g.title}" loading="lazy" />`
-    : `<span aria-hidden="true">${g.emoji || "😮"}</span>`;
+    ? '<span class="badge badge--live">PLAY</span>'
+    : '<span class="badge">SOON</span>';
 
-  const inner = `
-    <div class="thumb">${thumbInner}${badge}</div>
-    <div class="meta">
-      <h3>${g.title}</h3>
-      <p class="en">${g.en || ""}</p>
-    </div>`;
+  const icon = `
+    <div class="appcard__icon" style="--grad:${grad}">
+      ${badge}
+      <span class="appcard__emoji" aria-hidden="true">${g.emoji || "😮"}</span>
+    </div>
+    <div class="appcard__label">${g.title}</div>
+    <div class="appcard__en">${g.en || ""}</div>`;
 
+  const style = `--r:${rotation}deg`;
   if (isLive) {
-    return `<a class="card card--live" href="${g.url}" target="_blank" rel="noopener">${inner}</a>`;
+    return `<a class="appcard" style="${style}" href="${g.url}" target="_blank" rel="noopener">${icon}</a>`;
   }
-  return `<article class="card">${inner}</article>`;
+  return `<div class="appcard" style="${style}">${icon}</div>`;
 }
 
-function renderGames() {
-  const grid = document.getElementById("games-grid");
-  if (!grid) return;
-
-  const cards = GAMES.map(gameCard).join("");
-
-  // 그리드가 비어 보이지 않게 "다음 깜놀" 플레이스홀더로 채우기 (최소 4칸)
-  const ghostCount = Math.max(0, 4 - GAMES.length);
-  const ghosts = Array.from({ length: ghostCount })
-    .map(
-      () => `<article class="card card--ghost">
-        <div class="thumb"><span aria-hidden="true">+</span></div>
-        <div class="meta"><h3>다음 깜놀</h3><p class="en">Coming soon</p></div>
-      </article>`
-    )
-    .join("");
-
-  grid.innerHTML = cards + ghosts;
+function ghostHTML(rotation) {
+  return `<div class="appcard appcard--ghost" style="--r:${rotation}deg">
+    <div class="appcard__icon" style="--grad:${GRADIENTS.ghost}">
+      <span class="appcard__emoji" aria-hidden="true">+</span>
+    </div>
+    <div class="appcard__label">다음 깜놀</div>
+    <div class="appcard__en">Coming soon</div>
+  </div>`;
 }
 
-renderGames();
+function renderCards() {
+  const wrap = document.getElementById("cards");
+  if (!wrap) return;
+
+  // 클러스터가 비어 보이지 않게 최소 5칸으로 (게임 + 고스트)
+  const total = Math.max(5, GAMES.length);
+  const center = (total - 1) / 2;
+  const step = 7; // 카드당 기울기(deg)
+
+  const html = [];
+  for (let i = 0; i < total; i++) {
+    const rot = Math.round((i - center) * step);
+    html.push(i < GAMES.length ? cardHTML(GAMES[i], rot) : ghostHTML(rot));
+  }
+  wrap.innerHTML = html.join("");
+}
+
+renderCards();
