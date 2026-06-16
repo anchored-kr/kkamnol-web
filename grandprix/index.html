@@ -17,15 +17,23 @@
   </head>
   <body>
     <canvas id="stage"></canvas>
+    <div id="flash"></div>
+    <div id="confetti"></div>
 
     <div class="hud">
       <div class="topbar">
         <a class="exit" href="/">← 나가기</a>
         <div class="title">깜놀 그랑프리</div>
-        <div class="block">A블록 · 3번째</div>
+        <div class="topright">
+          <span class="block">A블록 · 3번째</span>
+          <button id="mute" class="mute" aria-label="소리 켜기/끄기">🔊</button>
+        </div>
       </div>
 
       <div class="prompt">사진 한 줄 평</div>
+
+      <div id="suspense" class="suspense" hidden>심사 중…</div>
+      <div id="bigboard" class="bigboard" hidden>깜놀! 🎉</div>
 
       <section id="play" class="bottombar">
         <form id="form" autocomplete="off">
@@ -35,13 +43,15 @@
       </section>
 
       <section id="result" class="resultbar" hidden>
-        <div class="board" id="board">깜놀! 🎉</div>
         <p class="mycap" id="myCaption"></p>
         <div class="legends">
           <h3>레전드 답안 TOP3</h3>
           <ol id="legendList"></ol>
         </div>
-        <button id="retry" class="btn btn--ghost">다시 도전</button>
+        <div class="actions">
+          <button id="share" class="btn btn--primary">결과 공유</button>
+          <button id="retry" class="btn btn--ghost">다시 도전</button>
+        </div>
       </section>
     </div>
 
