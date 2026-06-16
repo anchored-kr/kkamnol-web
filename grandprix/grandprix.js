@@ -161,17 +161,27 @@ function makeJudge(x, i) {
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
 
-/* ---- 출연자(나): 뒷모습 + 단상 ---- */
-const stand = new THREE.Group();
-stand.add(pm(new THREE.BoxGeometry(1.7, 1.6, 0.75), new THREE.MeshStandardMaterial({ color: 0x12110d, metalness: 0.3, roughness: 0.6 }), 0, 0.8, 0));
-stand.add(pm(new THREE.BoxGeometry(1.78, 0.14, 0.83), new THREE.MeshStandardMaterial({ color: 0xffce2e, emissive: 0xffae00, emissiveIntensity: 0.6 }), 0, 1.6, 0));
-stand.add(pm(new THREE.BoxGeometry(0.92, 1.0, 0.5), new THREE.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.7 }), 0, 1.85, 0));
-stand.add(pm(new THREE.SphereGeometry(0.33, 24, 24), new THREE.MeshStandardMaterial({ color: 0xe7b699, roughness: 0.85 }), 0, 2.62, 0));
-stand.add(pm(new THREE.SphereGeometry(0.35, 22, 18), new THREE.MeshStandardMaterial({ color: 0x161210, roughness: 0.95 }), 0, 2.7, 0.03));
-stand.position.set(0, 0, 3.4);
-scene.add(stand);
-const spot = new THREE.SpotLight(0xfff0d0, 70, 20, 0.5, 0.5, 1.2);
-spot.position.set(0, 9, 7); spot.target.position.set(0, 2, 3.4); scene.add(spot, spot.target);
+/* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 ---- */
+function makeLabel(text) {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 140;
+  const x = c.getContext("2d");
+  x.fillStyle = "#ff5a5f";
+  const r = 30, w = 170, h = 92, ox = (256 - w) / 2, oy = (140 - h) / 2;
+  x.beginPath(); x.moveTo(ox + r, oy); x.arcTo(ox + w, oy, ox + w, oy + h, r); x.arcTo(ox + w, oy + h, ox, oy + h, r); x.arcTo(ox, oy + h, ox, oy, r); x.arcTo(ox, oy, ox + w, oy, r); x.closePath(); x.fill();
+  x.fillStyle = "#fff"; x.font = "800 60px 'Noto Sans KR',sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(text, 128, 74);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(1.0, 0.55, 1);
+  return sp;
+}
+const meSprite = makeLabel("나");
+meSprite.position.set(0, 3.05, -3.5);
+scene.add(meSprite);
+// 가운데 캐릭터: 핑크 보타이로 구분
+judges[2].userData.person.children[1].material = new THREE.MeshStandardMaterial({ color: 0xff5a5f, emissive: 0x551015, emissiveIntensity: 0.4 });
+const meSpot = new THREE.SpotLight(0xfff0d8, 95, 16, 0.5, 0.5, 1.2);
+meSpot.position.set(0, 9, 2); meSpot.target.position.set(0, 2, -3.7); scene.add(meSpot, meSpot.target);
 
 /* ---- 조명 ---- */
 scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.5));
@@ -182,8 +192,8 @@ const rim = new THREE.PointLight(0x66ccff, 12, 24, 2); rim.position.set(-7, 5, 2
 
 /* ---- 카메라 컨트롤러 (establish → play) ---- */
 const cam = {
-  estPos: new THREE.Vector3(0.9, 5.7, 12), estLook: new THREE.Vector3(0, 3.5, -3),
-  playPos: new THREE.Vector3(0, 2.7, 8.2), playLook: new THREE.Vector3(0, 4.1, -8),
+  estPos: new THREE.Vector3(0.9, 5.7, 12), estLook: new THREE.Vector3(0, 3.4, -3),
+  playPos: new THREE.Vector3(0, 2.5, 6.4), playLook: new THREE.Vector3(0, 3.3, -7),
   zoom: 0, zoomCur: 0, punch: 0, punchCur: 0, shake: 0,
 };
 let t = 0, framePulse = 0;
