@@ -1,5 +1,5 @@
 const $ = (s) => document.querySelector(s);
-const state = { item: null, caption: "" };
+const state = { item: null, caption: "", cardImg: null };
 
 async function init() {
   try {
@@ -22,8 +22,20 @@ async function init() {
 
 function renderScene() {
   const s = $("#scene");
-  s.style.background = state.item.bg;
-  s.textContent = state.item.emoji;
+  s.style.background = state.item.bg || "#eee";
+  state.cardImg = null;
+  if (state.item.image) {
+    s.textContent = "";
+    s.style.backgroundImage = `url("${state.item.image}")`;
+    s.style.backgroundSize = "cover";
+    s.style.backgroundPosition = "center";
+    const img = new Image();
+    img.onload = () => { state.cardImg = img; }; // 결과 카드용 (동일 출처 → canvas 안전)
+    img.src = state.item.image;
+  } else {
+    s.style.backgroundImage = "";
+    s.textContent = state.item.emoji || "😮";
+  }
 }
 
 /* ---- 스트릭 ---- */
@@ -148,11 +160,22 @@ function drawCard() {
   ctx.fillStyle = state.item.bg;
   ctx.fill();
 
-  // 이모지 씬
-  ctx.textBaseline = "middle";
-  ctx.font = "320px 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
-  ctx.fillText(state.item.emoji, W / 2, py + ph / 2);
-  ctx.textBaseline = "alphabetic";
+  // 짤: 실사진 or 이모지 폴백
+  if (state.cardImg) {
+    ctx.save();
+    roundRect(ctx, px, py, pw, ph, 48);
+    ctx.clip();
+    const img = state.cardImg;
+    const r = Math.max(pw / img.width, ph / img.height);
+    const w = img.width * r, h = img.height * r;
+    ctx.drawImage(img, px + (pw - w) / 2, py + (ph - h) / 2, w, h);
+    ctx.restore();
+  } else {
+    ctx.textBaseline = "middle";
+    ctx.font = "320px 'Apple Color Emoji', 'Noto Color Emoji', sans-serif";
+    ctx.fillText(state.item.emoji || "😮", W / 2, py + ph / 2);
+    ctx.textBaseline = "alphabetic";
+  }
 
   // 합격 도장
   drawStamp(ctx, px + pw - 96, py + ph - 70);
