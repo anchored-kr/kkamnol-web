@@ -13,6 +13,14 @@ const GRADIENTS = {
 
 const GAMES = [
   {
+    title: "제목학원",
+    en: "Caption Academy",
+    emoji: "😆",
+    status: "live",
+    url: "/jaemok",
+    color: "peach",
+  },
+  {
     title: "깜놀타임",
     en: "Kkamnol Time",
     emoji: "😮",
@@ -39,7 +47,9 @@ function cardHTML(g, rotation) {
 
   const style = `--r:${rotation}deg`;
   if (isLive) {
-    return `<a class="appcard" style="${style}" href="${g.url}" target="_blank" rel="noopener">${icon}</a>`;
+    const external = /^https?:/.test(g.url);
+    const attrs = external ? ' target="_blank" rel="noopener"' : "";
+    return `<a class="appcard" style="${style}" href="${g.url}"${attrs}>${icon}</a>`;
   }
   return `<div class="appcard" style="${style}">${icon}</div>`;
 }
@@ -58,10 +68,9 @@ function renderCards() {
   const wrap = document.getElementById("cards");
   if (!wrap) return;
 
-  // 클러스터가 비어 보이지 않게 최소 5칸으로 (게임 + 고스트)
   const total = Math.max(5, GAMES.length);
   const center = (total - 1) / 2;
-  const step = 7; // 카드당 기울기(deg)
+  const step = 7;
 
   const html = [];
   for (let i = 0; i < total; i++) {

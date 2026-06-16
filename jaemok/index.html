@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>제목학원 — Kkamnol</title>
+    <meta name="description" content="오늘의 짤에 제목을 지어라. Kkamnol 제목학원." />
+    <link rel="canonical" href="https://kkamnol.xyz/jaemok" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kkamnol.xyz/jaemok" />
+    <meta property="og:title" content="제목학원 — Kkamnol" />
+    <meta property="og:description" content="이 짤의 제목, 뭐라고 지을래? 한 줄 드립으로 빵 터뜨려라." />
+    <meta property="og:image" content="https://kkamnol.xyz/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#faf7f5" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>😆</text></svg>" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,800;1,900&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/jaemok/jaemok.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/">
+        <span class="brand__mark">😮</span>
+        <span class="brand__name">kkamnol</span>
+      </a>
+      <a class="back" href="/">← 다른 게임</a>
+    </header>
+
+    <main class="game">
+      <div class="game__head">
+        <p class="eyebrow">제목학원</p>
+        <h1>이 짤의 제목은?</h1>
+        <p class="sub">한 줄 드립으로 빵 터뜨려라 <span class="streak" id="streak"></span></p>
+      </div>
+
+      <!-- PLAY -->
+      <section id="play" class="panel">
+        <div class="frame" id="scene">🐵</div>
+        <form id="form" autocomplete="off">
+          <input id="caption" maxlength="40" placeholder="이 사진의 제목은…?" />
+          <button type="submit" class="btn btn--primary">제출 →</button>
+        </form>
+        <p class="hint" id="hint">짧고 강하게. 40자까지.</p>
+      </section>
+
+      <!-- RESULT -->
+      <section id="result" class="panel" hidden>
+        <canvas id="card" width="1080" height="1350" aria-label="제목학원 결과 카드"></canvas>
+        <div class="actions">
+          <button id="share" class="btn btn--primary">공유하기</button>
+          <button id="retry" class="btn btn--ghost">다시 짓기</button>
+        </div>
+        <div class="legends">
+          <h2>오늘의 레전드 드립 TOP3</h2>
+          <ol id="legendList"></ol>
+        </div>
+        <p class="comeback">내일 또 새로운 짤이 와요 🔥</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>© 2026 Kkamnol Interactive</span>
+      <span class="site-footer__links">
+        <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
+      </span>
+    </footer>
+
+    <script src="/jaemok/jaemok.js" defer></script>
+  </body>
+</html>
