@@ -261,14 +261,12 @@ fetch("/jaemok/daily.json", { cache: "no-store" })
   })
   .catch(() => drawPlaceholder());
 
-/* ---- 인트로: 슬롯 → 두둥/땅 → 줌인 ---- */
+/* ---- 슬롯 사진릴: 삭삭삭 + 띵띵 → 두둥/땅 ---- */
 let started = false;
-async function intro() {
-  if (started) return; started = true;
-  Sfx.resume();
-  $("#startScreen").hidden = true;
-
-  // 슬롯 (삭삭삭 + 띵띵)
+let revealing = false;
+async function slotReveal(targetIndex) {
+  revealing = true;
+  $("#prompt").hidden = true;
   const n = items.length;
   let i = Math.floor(Date.now() / 997) % n;
   const ticks = 24;
@@ -278,21 +276,40 @@ async function intro() {
     Sfx.tick();
     await sleep(50 + (k / ticks) * (k / ticks) * 360); // 가속 → 감속
   }
-  // 딱! 결정
-  drawItemToScreen(chosenIndex);
+  drawItemToScreen(targetIndex); // 딱! 결정
   Sfx.boom();
   await sleep(240);
   Sfx.gong();
   flashScreen();
   framePulse = 2.6;
-  cam.shake = 1.3;
+  cam.shake = 1.2;
   await sleep(950);
+  revealing = false;
+}
 
-  // 내 캐릭터로 줌인
+// 첫 회: 데일리 사진 + 내 캐릭터로 줌인
+async function intro() {
+  if (started) return; started = true;
+  Sfx.resume();
+  $("#startScreen").hidden = true;
+  await slotReveal(chosenIndex);
   cam.zoom = 1;
   await sleep(1500);
+  $("#prompt").hidden = false;
+  $("#play").hidden = false;
+  $("#caption").focus();
+}
 
-  // 타이핑 시작
+// 다시 도전: 랜덤 사진으로 슬롯부터 다시
+async function retry() {
+  if (revealing || busy) return;
+  $("#result").hidden = true;
+  $("#bigboard").hidden = true;
+  $("#caption").value = "";
+  judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
+  chosenIndex = Math.floor(Math.random() * items.length); // 랜덤 사진 선택
+  item = items[chosenIndex];
+  await slotReveal(chosenIndex);
   $("#prompt").hidden = false;
   $("#play").hidden = false;
   $("#caption").focus();
@@ -363,10 +380,6 @@ async function shareResult() {
 /* ---- 이벤트 ---- */
 $("#startBtn").addEventListener("click", intro);
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
-$("#retry").addEventListener("click", () => {
-  $("#result").hidden = true; $("#bigboard").hidden = true; $("#play").hidden = false; $("#caption").value = "";
-  judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
-  $("#caption").focus();
-});
+$("#retry").addEventListener("click", retry);
 $("#share").addEventListener("click", shareResult);
 $("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });
