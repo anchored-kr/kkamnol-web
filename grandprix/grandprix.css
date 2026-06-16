@@ -12,7 +12,7 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 @keyframes fall { to { transform: translateY(112vh) rotate(720deg); } }
 
 .hud { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; z-index: 4; }
-.hud a, .hud button, .hud input { pointer-events: auto; }
+.hud a, .hud button, .hud input, .hud select { pointer-events: auto; }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
 .framed .topbar { padding-top: 44px; } /* 폰 목업: 다이나믹 아일랜드 아래로 */
