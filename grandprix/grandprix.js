@@ -521,12 +521,35 @@ function renderLb() {
 /* ---- 닉네임 / 국적 ---- */
 const player = { nick: "나", flag: "🇰🇷", nation: "한국" };
 const nickEl = $("#nick"), natEl = $("#nat");
+
+// 국가코드 → 옵션값 (접속 지역 기본값용)
+const CC2VAL = {
+  KR: "🇰🇷|한국", US: "🇺🇸|USA", JP: "🇯🇵|日本", CN: "🇨🇳|中国", TW: "🇹🇼|台灣",
+  GB: "🇬🇧|UK", FR: "🇫🇷|France", DE: "🇩🇪|Deutschland", ES: "🇪🇸|España", IT: "🇮🇹|Italia",
+  BR: "🇧🇷|Brasil", MX: "🇲🇽|México", IN: "🇮🇳|भारत", ID: "🇮🇩|Indonesia", VN: "🇻🇳|Việt Nam",
+  TH: "🇹🇭|ไทย", PH: "🇵🇭|Pilipinas", CA: "🇨🇦|Canada", AU: "🇦🇺|Australia",
+};
+const natHas = (v) => [...natEl.options].some((o) => o.value === v);
+let defaultLocked = false; // 저장값 있거나 유저가 직접 고르면 자동 변경 중단
+function setDefaultNat(cc) {
+  if (defaultLocked) return;
+  const v = CC2VAL[(cc || "").toUpperCase()];
+  natEl.value = v && natHas(v) ? v : "🌍|기타";
+}
 try {
   const s = JSON.parse(localStorage.getItem("gp-player") || "{}");
   if (s.nick) { nickEl.value = s.nick; $("#startBtn").disabled = false; }
-  if (s.nat) natEl.value = s.nat;
+  if (s.nat && natHas(s.nat)) { natEl.value = s.nat; defaultLocked = true; }
 } catch (e) {}
+if (!defaultLocked) {
+  const reg = (navigator.language || (navigator.languages && navigator.languages[0]) || "").split("-")[1];
+  if (reg) setDefaultNat(reg); // 1) 브라우저 로캘 즉시
+  fetch("https://get.geojs.io/v1/ip/country.json", { cache: "no-store" }) // 2) 접속 IP 지역으로 보정
+    .then((r) => r.json()).then((d) => { if (d && d.country) setDefaultNat(d.country); })
+    .catch(() => {});
+}
 nickEl.addEventListener("input", () => { $("#startBtn").disabled = !nickEl.value.trim(); });
+natEl.addEventListener("change", () => { defaultLocked = true; });
 function readPlayer() {
   player.nick = nickEl.value.trim() || "나";
   const [flag, nation] = (natEl.value || "🇰🇷|한국").split("|");
