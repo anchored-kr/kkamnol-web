@@ -1,5 +1,6 @@
 const $ = (s) => document.querySelector(s);
 const state = { item: null, caption: "", cardImg: null };
+if (window.self !== window.top) document.documentElement.classList.add("framed"); // 폰 목업 안 → 아일랜드 여백
 
 async function init() {
   try {

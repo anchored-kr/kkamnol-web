@@ -2,6 +2,7 @@ import * as THREE from "three";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
+if (window.self !== window.top) document.documentElement.classList.add("framed"); // 폰 목업 안 → 아일랜드 여백
 const lerp = (a, b, t) => a + (b - a) * t;
 const ease = (t) => t * t * (3 - 2 * t);
 

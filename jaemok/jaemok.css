@@ -29,6 +29,7 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   padding: 18px 24px;
 }
+.framed .site-header { padding-top: 46px; } /* 폰 목업: 다이나믹 아일랜드 아래로 */
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand__mark { font-size: 22px; }
 .brand__name { font-family: var(--font-display); font-weight: 800; font-style: italic; font-size: 20px; letter-spacing: -0.02em; }
