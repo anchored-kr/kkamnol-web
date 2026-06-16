@@ -341,7 +341,7 @@ async function judgeReaction(caption) {
   cam.punch = 0;
   await sleep(650);
   $("#myCaption").textContent = `“${caption}”`;
-  $("#legendList").innerHTML = (item.legends || []).map((l) => `<li>${escapeHtml(l)}</li>`).join("");
+  openLeaderboard(caption);
   $("#result").hidden = false;
   busy = false;
 }
@@ -381,6 +381,52 @@ async function shareResult() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share(data); } catch (e) {} return; }
     const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "kkamnol-grandprix.png"; a.click(); URL.revokeObjectURL(url);
   }, "image/png");
+}
+
+/* ---- 리더보드 (국적별 답변 + 좋아요/순위) — 시드/로컬 데모 ---- */
+const SEED = {
+  cats: [["🇰🇷","만두","둘이 합쳐도 월세 못 냄",142],["🇯🇵","ユキ","猫バス、定員2名です",98],["🇺🇸","Mike","POV: roommates who never leave",87],["🇧🇷","João","transporte público lotado",51],["🇰🇷","코코","여기 원래 내 자린데요",33]],
+  "dog-portrait": [["🇫🇷","Léa","portrait d'un noble fatigué",120],["🇰🇷","보리","조선시대 셋째 도련님",110],["🇬🇧","Tom","Sir Barksalot, oil on canvas",76],["🇰🇷","흰둥","어제 과음한 게 티남",60],["🇩🇪","Anna","Hund mit Existenzkrise",40]],
+  pug: [["🇰🇷","콩이","혼나기 직전 인턴",155],["🇺🇸","Sam","I did nothing wrong (I did)",130],["🇯🇵","ハナ","上司に呼ばれた瞬間",88],["🇰🇷","뚱이","월급 언제 들어와요",64],["🇮🇳","Raj","puppy eyes: 100% charged",45]],
+  goats: [["🇰🇷","등산왕","정상 인증샷 강요 중",99],["🇺🇸","Alex","corporate retreat gone wrong",70],["🇰🇷","메에","여기서 밀면 칼퇴",66],["🇯🇵","タケシ","崖っぷち会議",50],["🇫🇷","Marie","team building au sommet",31]],
+  alpaca: [["🇰🇷","알파","월요일 아침 내 얼굴",168],["🇧🇷","Lucas","segunda-feira be like",121],["🇺🇸","Jess","when payday is 2 weeks away",95],["🇰🇷","라마","주말 잘 보냈냐고 묻지마",72],["🇯🇵","ミク","歯医者の予約を思い出した",44]],
+  ducks: [["🇰🇷","부장님","회의 폭풍 속의 평온",133],["🇬🇧","Will","keep calm and stay dry",90],["🇰🇷","동동","급류=내 일정, 바위=나",77],["🇻🇳","Linh","bình tĩnh giữa deadline",53],["🇺🇸","Chris","ducks don't do Mondays",38]],
+  frog: [["🇰🇷","사장님","그래서 결론이 뭐죠?",147],["🇰🇷","초록","보고서 다시 써오세요",102],["🇯🇵","ケロ","で、要点は?",80],["🇺🇸","Pat","the stare of judgment",59],["🇪🇸","Sofía","esperando tu excusa",35]],
+};
+let lbData = [];
+let lbFilter = "all";
+function openLeaderboard(myCaption) {
+  const id = (items[chosenIndex] && items[chosenIndex].id) || "cats";
+  const seed = (SEED[id] || []).map(([flag, nick, text, likes]) => ({ flag, nick, text, likes, liked: false }));
+  lbData = [...seed, { flag: player.flag, nick: player.nick, text: myCaption, likes: 0, liked: false, mine: true }];
+  lbFilter = "all";
+  renderFilter();
+  renderLb();
+}
+function renderFilter() {
+  const flags = [...new Set(lbData.map((a) => a.flag))];
+  const mk = (f, label) => `<button class="chip ${lbFilter === f ? "on" : ""}" data-f="${f}">${label}</button>`;
+  $("#lbFilter").innerHTML = [mk("all", "전체"), ...flags.map((f) => mk(f, f))].join("");
+  $("#lbFilter").querySelectorAll(".chip").forEach((c) =>
+    c.addEventListener("click", () => { lbFilter = c.dataset.f; renderFilter(); renderLb(); }));
+}
+function renderLb() {
+  const rows = lbData
+    .map((a) => ({ a, i: lbData.indexOf(a) }))
+    .filter(({ a }) => lbFilter === "all" || a.flag === lbFilter)
+    .sort((x, y) => y.a.likes - x.a.likes);
+  $("#lbList").innerHTML = rows.map(({ a, i }, r) => `
+    <li class="lb-row ${a.mine ? "mine" : ""}">
+      <span class="rank">${r + 1}</span>
+      <div class="main"><div class="who">${a.flag} ${escapeHtml(a.nick)}${a.mine ? " · 나" : ""}</div><div class="txt">${escapeHtml(a.text)}</div></div>
+      <button class="like" data-i="${i}">${a.liked ? "❤️" : "🤍"} ${a.likes}</button>
+    </li>`).join("");
+  $("#lbList").querySelectorAll(".like").forEach((b) =>
+    b.addEventListener("click", () => {
+      const a = lbData[+b.dataset.i];
+      a.liked ? (a.likes--, (a.liked = false)) : (a.likes++, (a.liked = true)); // 토글
+      renderLb();
+    }));
 }
 
 /* ---- 닉네임 / 국적 ---- */

@@ -43,13 +43,32 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 .btn--primary:hover { transform: translateY(-2px); }
 .btn--ghost { background: rgba(255,255,255,0.1); color: #fff; border: 1.5px solid rgba(255,255,255,0.3); }
 
-.resultbar { margin-top: auto; padding: 0 20px 28px; max-width: 560px; margin-left: auto; margin-right: auto; width: 100%; text-align: center; }
-.mycap { font-size: clamp(19px, 5vw, 28px); font-weight: 700; margin: 0 0 14px; text-shadow: 0 2px 12px rgba(0,0,0,0.7); }
-.legends { background: rgba(10,12,10,0.72); border: 1px solid rgba(255,206,46,0.4); border-radius: 16px; padding: 14px 18px; text-align: left; backdrop-filter: blur(6px); margin-bottom: 16px; }
-.legends h3 { margin: 0 0 8px; color: #ffce2e; font-size: 14px; font-weight: 800; }
-.legends ol { margin: 0; padding-left: 20px; }
-.legends li { margin: 6px 0; font-size: 15px; font-weight: 500; }
-.actions { display: flex; gap: 10px; justify-content: center; }
+/* 결과 + 리더보드 카드 */
+.result-card {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(92vw, 470px); max-height: 84vh; z-index: 4;
+  display: flex; flex-direction: column;
+  background: rgba(10, 12, 10, 0.88); border: 1px solid rgba(255, 206, 46, 0.4);
+  border-radius: 20px; padding: 20px; backdrop-filter: blur(8px); text-align: center;
+}
+.result-card[hidden] { display: none; }
+.mycap { font-size: clamp(18px, 4.6vw, 24px); font-weight: 700; margin: 0 0 14px; }
+.lb { flex: 1; min-height: 0; display: flex; flex-direction: column; text-align: left; }
+.lb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.lb-head h3 { margin: 0; color: #ffce2e; font-size: 15px; font-weight: 800; }
+.lb-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; border-radius: 999px; padding: 4px 11px; font-size: 14px; cursor: pointer; line-height: 1.2; }
+.chip.on { background: #ffce2e; color: #111; border-color: #ffce2e; font-weight: 700; }
+.lb-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.lb-row .rank { width: 22px; text-align: center; color: #ffce2e; font-weight: 800; font-size: 15px; flex: none; }
+.lb-row .main { flex: 1; min-width: 0; }
+.lb-row .who { font-size: 12px; color: rgba(255, 255, 255, 0.6); }
+.lb-row .txt { font-size: 14px; word-break: break-word; }
+.lb-row.mine { background: rgba(255, 90, 95, 0.16); border-radius: 10px; }
+.like { flex: none; background: rgba(255, 90, 95, 0.18); border: 1px solid rgba(255, 90, 95, 0.45); color: #ff9da0; border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.like:hover { background: rgba(255, 90, 95, 0.3); }
+.actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
 
 /* 시작 화면 */
 .startscreen[hidden] { display: none; }

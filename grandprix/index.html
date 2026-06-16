@@ -74,11 +74,14 @@
         </form>
       </section>
 
-      <section id="result" class="resultbar" hidden>
+      <section id="result" class="result-card" hidden>
         <p class="mycap" id="myCaption"></p>
-        <div class="legends">
-          <h3>레전드 답안 TOP3</h3>
-          <ol id="legendList"></ol>
+        <div class="lb">
+          <div class="lb-head">
+            <h3>🏆 리더보드</h3>
+            <div id="lbFilter" class="lb-filter"></div>
+          </div>
+          <ol id="lbList" class="lb-list"></ol>
         </div>
         <div class="actions">
           <button id="share" class="btn btn--primary">결과 공유</button>
