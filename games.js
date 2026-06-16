@@ -97,7 +97,7 @@ function isDesktop() {
 function setupPhonePreview() {
   const overlay = document.getElementById("phoneOverlay");
   if (!overlay) return;
-  const iframe = overlay.querySelector(".phone-screen");
+  const iframe = overlay.querySelector(".phone-frame");
   const fsLink = overlay.querySelector(".phone-fullscreen");
   let closeTimer = null;
 

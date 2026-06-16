@@ -207,10 +207,14 @@ a { color: inherit; text-decoration: none; }
     inset 0 0 0 7px #000;
 }
 .phone-screen {
-  width: 100%; height: 100%; border: 0; display: block;
+  width: 100%; height: 100%;
   border-radius: 11% / 5.1%;
+  overflow: hidden;                                          /* 코너 클리핑 */
   background: #fff;
+  -webkit-mask-image: -webkit-radial-gradient(white, black); /* Safari 코너 강제 클립 */
+  transform: translateZ(0);
 }
+.phone-frame { width: 100%; height: 100%; border: 0; display: block; }
 .phone-island {
   position: absolute; top: 2.1%; left: 50%; transform: translateX(-50%);
   width: 30%; height: 3%; min-height: 24px;
