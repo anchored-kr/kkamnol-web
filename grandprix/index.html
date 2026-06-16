@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>깜놀 그랑프리 — Kkamnol</title>
+    <meta name="description" content="당신이 출연자. 전광판 사진에 한 줄 평으로 깜놀을 노려라. 깜놀 그랑프리." />
+    <meta name="theme-color" content="#0a0d0a" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,800;1,900&family=Noto+Sans+KR:wght@500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/grandprix/grandprix.css" />
+    <script type="importmap">
+      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js" } }
+    </script>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <div class="hud">
+      <div class="topbar">
+        <a class="exit" href="/">← 나가기</a>
+        <div class="title">깜놀 그랑프리</div>
+        <div class="block">A블록 · 3번째</div>
+      </div>
+
+      <div class="prompt">사진 한 줄 평</div>
+
+      <section id="play" class="bottombar">
+        <form id="form" autocomplete="off">
+          <input id="caption" maxlength="40" placeholder="전광판 사진에 한 마디…" />
+          <button type="submit" class="btn btn--primary">답변! →</button>
+        </form>
+      </section>
+
+      <section id="result" class="resultbar" hidden>
+        <div class="board" id="board">깜놀! 🎉</div>
+        <p class="mycap" id="myCaption"></p>
+        <div class="legends">
+          <h3>레전드 답안 TOP3</h3>
+          <ol id="legendList"></ol>
+        </div>
+        <button id="retry" class="btn btn--ghost">다시 도전</button>
+      </section>
+    </div>
+
+    <script type="module" src="/grandprix/grandprix.js"></script>
+  </body>
+</html>

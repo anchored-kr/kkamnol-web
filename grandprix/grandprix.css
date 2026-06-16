@@ -1,0 +1,68 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0d0a; }
+body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
+#stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+.hud { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; }
+.hud a, .hud button, .hud input { pointer-events: auto; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+}
+.exit { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; font-size: 14px; }
+.exit:hover { color: #fff; }
+.title {
+  font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900;
+  font-size: clamp(18px, 4vw, 26px); letter-spacing: -0.02em;
+  color: #ffce2e; text-shadow: 0 2px 16px rgba(255,176,0,0.5);
+}
+.block { font-size: 12px; font-weight: 700; color: #ffce2e; opacity: 0.85; }
+
+.prompt {
+  position: absolute; top: 74px; left: 50%; transform: translateX(-50%);
+  font-weight: 800; font-size: clamp(15px, 3.4vw, 20px);
+  color: #1a1a1a; background: #ffce2e; padding: 7px 18px; border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(255,176,0,0.4);
+}
+
+.bottombar { margin-top: auto; padding: 0 20px 30px; }
+#form { display: flex; gap: 10px; max-width: 540px; margin: 0 auto; }
+#caption {
+  flex: 1; padding: 16px 20px; border-radius: 999px; border: 2px solid rgba(255,206,46,0.6);
+  background: rgba(10,12,10,0.78); color: #fff; font-size: 16px; outline: none;
+  backdrop-filter: blur(6px); font-family: inherit;
+}
+#caption::placeholder { color: rgba(255,255,255,0.5); }
+#caption:focus { border-color: #ffce2e; box-shadow: 0 0 0 4px rgba(255,206,46,0.22); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 16px 24px; border-radius: 999px; font-weight: 800; font-size: 16px;
+  border: none; cursor: pointer; font-family: inherit; white-space: nowrap;
+  transition: transform 0.12s ease, background 0.15s;
+}
+.btn--primary { background: #ffce2e; color: #1a1a1a; box-shadow: 0 8px 24px rgba(255,176,0,0.45); }
+.btn--primary:hover { transform: translateY(-2px); }
+.btn--ghost { background: rgba(255,255,255,0.1); color: #fff; border: 1.5px solid rgba(255,255,255,0.3); }
+
+/* RESULT */
+.resultbar {
+  margin-top: auto; padding: 0 20px 30px; max-width: 560px; margin-left: auto; margin-right: auto;
+  width: 100%; text-align: center;
+}
+.board {
+  font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900;
+  font-size: clamp(40px, 12vw, 80px); color: #ffce2e;
+  text-shadow: 0 4px 30px rgba(255,176,0,0.7);
+  animation: slam 0.4s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
+@keyframes slam { 0% { transform: scale(2.4) rotate(-8deg); opacity: 0; } 100% { transform: scale(1) rotate(-3deg); opacity: 1; } }
+.mycap { font-size: clamp(18px, 4.6vw, 26px); font-weight: 700; margin: 6px 0 18px; }
+.legends {
+  background: rgba(10,12,10,0.7); border: 1px solid rgba(255,206,46,0.4); border-radius: 16px;
+  padding: 14px 18px; text-align: left; backdrop-filter: blur(6px); margin-bottom: 16px;
+}
+.legends h3 { margin: 0 0 8px; color: #ffce2e; font-size: 14px; font-weight: 800; }
+.legends ol { margin: 0; padding-left: 20px; }
+.legends li { margin: 6px 0; font-size: 15px; font-weight: 500; }
