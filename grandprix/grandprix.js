@@ -8,9 +8,13 @@ const ease = (t) => t * t * (3 - 2 * t);
 
 /* ============ 오디오 (Web Audio 합성) ============ */
 const Sfx = (() => {
-  let ctx = null, muted = false;
+  let ctx = null, muted = false, bus = null, rdest = null;
   const ensure = () => {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      bus = ctx.createGain(); bus.connect(ctx.destination);
+      rdest = ctx.createMediaStreamDestination(); bus.connect(rdest); // 영상 녹음용
+    }
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   };
@@ -26,12 +30,13 @@ const Sfx = (() => {
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-    o.connect(g).connect(c.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+    o.connect(g).connect(bus); o.start(t0); o.stop(t0 + dur + 0.02);
   };
   return {
     resume: () => ensure(),
     toggle: () => (muted = !muted),
     get muted() { return muted; },
+    recordTrack: () => { ensure(); return rdest.stream.getAudioTracks()[0]; }, // 영상 녹음용 오디오
     tick() { if (!muted) tone("triangle", 900, ensure().currentTime, 0.08, 0.12); },        // 슬롯 띵
     click() { if (!muted) tone("square", 440, ensure().currentTime, 0.08, 0.09); },          // 레버
     boom() {  // 두둥
@@ -40,7 +45,7 @@ const Sfx = (() => {
       const s = c.createBufferSource(); s.buffer = noise(0.2);
       const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 240;
       const g = c.createGain(); g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-      s.connect(f).connect(g).connect(c.destination); s.start(t);
+      s.connect(f).connect(g).connect(bus); s.start(t);
     },
     gong() {  // 땅~
       if (muted) return; const c = ensure(), t = c.currentTime;
@@ -52,7 +57,7 @@ const Sfx = (() => {
       const s = c.createBufferSource(); s.buffer = noise(0.25);
       const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 2200;
       const g = c.createGain(); g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-      s.connect(f).connect(g).connect(c.destination); s.start(t);
+      s.connect(f).connect(g).connect(bus); s.start(t);
     },
     cheer(dur = 1.5) {
       if (muted) return; const c = ensure(), t = c.currentTime;
@@ -61,7 +66,7 @@ const Sfx = (() => {
       const g = c.createGain();
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.13, t + 0.25);
       g.gain.linearRampToValueAtTime(0.1, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      s.connect(f).connect(g).connect(c.destination); s.start(t);
+      s.connect(f).connect(g).connect(bus); s.start(t);
     },
   };
 })();
@@ -187,6 +192,38 @@ scene.add(meSprite);
 judges[2].userData.person.children[1].material = new THREE.MeshStandardMaterial({ color: 0xff5a5f, emissive: 0x551015, emissiveIntensity: 0.4 });
 const meSpot = new THREE.SpotLight(0xfff0d8, 95, 16, 0.5, 0.5, 1.2);
 meSpot.position.set(0, 9, 2); meSpot.target.position.set(0, 2, -3.7); scene.add(meSpot, meSpot.target);
+
+/* ---- 영상용 캡션/깜놀 스프라이트 (캔버스 녹화에 담기도록 3D로) ---- */
+const capCanvas = document.createElement("canvas"); capCanvas.width = 1024; capCanvas.height = 220;
+const capTex = new THREE.CanvasTexture(capCanvas); capTex.colorSpace = THREE.SRGBColorSpace;
+function drawVideoCaption(text) {
+  const x = capCanvas.getContext("2d");
+  x.clearRect(0, 0, 1024, 220);
+  x.font = "800 64px 'Noto Sans KR','Apple Color Emoji',sans-serif";
+  let t = text, tw = x.measureText(t).width;
+  while (tw > 950 && t.length > 5) { t = t.slice(0, -2); tw = x.measureText(t + "…").width; }
+  if (t !== text) t += "…";
+  const w = Math.min(1006, tw + 70), h = 130, ox = (1024 - w) / 2, oy = 45, r = 40;
+  x.fillStyle = "rgba(10,10,12,0.82)";
+  x.beginPath(); x.moveTo(ox + r, oy); x.arcTo(ox + w, oy, ox + w, oy + h, r); x.arcTo(ox + w, oy + h, ox, oy + h, r); x.arcTo(ox, oy + h, ox, oy, r); x.arcTo(ox, oy, ox + w, oy, r); x.closePath(); x.fill();
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(t, 512, oy + h / 2);
+  capTex.needsUpdate = true;
+}
+const capSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: capTex, transparent: true, depthTest: false }));
+capSprite.scale.set(8.4, 1.8, 1); capSprite.position.set(0, 1.8, -7.8); capSprite.visible = false;
+scene.add(capSprite);
+
+const boomCanvas = document.createElement("canvas"); boomCanvas.width = 760; boomCanvas.height = 300;
+{
+  const x = boomCanvas.getContext("2d");
+  x.font = "900 italic 170px 'Noto Sans KR','Apple Color Emoji',sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillStyle = "#ffce2e"; x.fillText("깜놀! 🎉", 380, 160);
+}
+const boomTex = new THREE.CanvasTexture(boomCanvas); boomTex.colorSpace = THREE.SRGBColorSpace;
+const boomSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: boomTex, transparent: true, depthTest: false }));
+boomSprite.scale.set(6.2, 2.4, 1); boomSprite.position.set(0, 5.4, -7.6); boomSprite.visible = false;
+scene.add(boomSprite);
 
 /* ---- 조명 ---- */
 scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.5));
@@ -383,6 +420,58 @@ async function shareResult() {
   }, "image/png");
 }
 
+/* ---- 영상 녹화 + 공유 (슬롯→사진→캡션→깜놀 리플레이) ---- */
+let recording = false;
+function pickMime() {
+  const opts = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  for (const m of opts) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  return "";
+}
+async function recordReplay() {
+  if (recording || busy) return;
+  if (!window.MediaRecorder || !canvas.captureStream) { shareResult(); return; } // 미지원 → 이미지 폴백
+  recording = true;
+  const btn = $("#share"), prev = btn.textContent;
+  btn.textContent = "🎬 녹화 중…"; btn.disabled = true;
+  $("#result").hidden = true; $("#bigboard").hidden = true;
+  Sfx.resume();
+
+  const stream = canvas.captureStream(30);
+  try { const at = Sfx.recordTrack(); if (at) stream.addTrack(at); } catch (e) {}
+  const mime = pickMime();
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((res) => (rec.onstop = res));
+  rec.start();
+
+  capSprite.visible = false; boomSprite.visible = false;
+  await slotReveal(chosenIndex);               // 슬롯 → 사진 결정 (띵띵·두둥·땅 녹음됨)
+  drawVideoCaption(`“${lastCaption}”`);
+  capSprite.visible = true;                     // 캡션 등장
+  await sleep(800);
+  boomSprite.visible = true;                    // 깜놀!
+  Sfx.impact(); Sfx.cheer(1.3); cam.shake = 1.1;
+  await sleep(1700);
+
+  rec.stop();
+  await stopped;
+  capSprite.visible = false; boomSprite.visible = false;
+  recording = false;
+  btn.textContent = prev; btn.disabled = false;
+  $("#result").hidden = false;
+
+  const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "video/webm" });
+  const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+  const file = new File([blob], `kkamnol-grandprix.${ext}`, { type: blob.type || "video/webm" });
+  const data = { files: [file], title: "깜놀 그랑프리", text: "내 깜놀 그랑프리 ㅋㅋ kkamnol.xyz/grandprix" };
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share(data); return; } catch (e) {}
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url);
+}
+
 /* ---- 리더보드 (국적별 답변 + 좋아요/순위) — 시드/로컬 데모 ---- */
 const SEED = {
   cats: [["🇰🇷","만두","둘이 합쳐도 월세 못 냄",142],["🇯🇵","ユキ","猫バス、定員2名です",98],["🇺🇸","Mike","POV: roommates who never leave",87],["🇧🇷","João","transporte público lotado",51],["🇰🇷","코코","여기 원래 내 자린데요",33]],
@@ -450,5 +539,5 @@ function readPlayer() {
 $("#startBtn").addEventListener("click", intro);
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
-$("#share").addEventListener("click", shareResult);
+$("#share").addEventListener("click", recordReplay);
 $("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });
