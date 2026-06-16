@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
@@ -150,21 +151,38 @@ function makeJudge(x, i) {
   g.add(pm(new THREE.BoxGeometry(1.95, 1.15, 0.75), new THREE.MeshStandardMaterial({ color: 0x10140f, roughness: 0.8, metalness: 0.2 }), 0, 0.575, 0));
   const barMat = new THREE.MeshStandardMaterial({ color: 0xffd000, emissive: 0xffae00, emissiveIntensity: 0.7 });
   for (let k = 0; k < 7; k++) g.add(pm(new THREE.BoxGeometry(0.15, 0.55, 0.07), barMat, -0.62 + k * 0.205, 0.6, 0.39));
-  const person = new THREE.Group();
-  person.add(pm(new THREE.BoxGeometry(0.66, 0.9, 0.42), new THREE.MeshStandardMaterial({ color: SUITS[i], roughness: 0.7 }), 0, 1.55, -0.05));
-  person.add(pm(new THREE.BoxGeometry(0.22, 0.1, 0.05), new THREE.MeshStandardMaterial({ color: 0xffce2e, emissive: 0x553f00, emissiveIntensity: 0.3 }), 0, 1.86, 0.17));
-  person.add(pm(new THREE.SphereGeometry(0.27, 24, 24), new THREE.MeshStandardMaterial({ color: SKINS[i], roughness: 0.85 }), 0, 2.12, -0.05));
-  person.add(pm(new THREE.SphereGeometry(0.285, 20, 16, 0, Math.PI * 2, 0, Math.PI / 1.7), new THREE.MeshStandardMaterial({ color: 0x18120e, roughness: 0.95 }), 0, 2.16, -0.05));
-  if (i === 3) {
-    const gm = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5, roughness: 0.4 });
-    [-0.1, 0.1].forEach((gx) => person.add(pm(new THREE.TorusGeometry(0.07, 0.015, 8, 16), gm, gx, 2.12, 0.22)));
-  }
+  const person = new THREE.Group(); // GLB 캐릭터가 로드되면 채워짐
   g.add(person);
   g.position.set(x, 0, -3.7);
   g.userData = { barMat, person, pulse: 0 };
   judges.push(g); return g;
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
+
+/* ---- TripoSR GLB 캐릭터 로드 → 심사위원 5명 교체 ---- */
+const CHAR_STAND = -Math.PI / 2; // 세우기(모델 X)
+const CHAR_FACE = -Math.PI / 2;  // 정면(카메라) 보게 — 바깥 그룹 Y
+const CHAR_H = 1.55;                              // 캐릭터 키
+new GLTFLoader().load("/grandprix/models/character.glb", (gltf) => {
+  const src = gltf.scene;
+  src.traverse((o) => { if (o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
+  src.rotation.x = CHAR_STAND;
+  src.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(src);
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const s = CHAR_H / (size.y || 1);
+  judges.forEach((j) => {
+    const rig = new THREE.Group();
+    const m = src.clone(true);
+    m.scale.setScalar(s);
+    m.position.set(-center.x * s, -box.min.y * s, -center.z * s); // 베이스 y=0
+    rig.add(m);
+    rig.position.y = 1.18;      // 책상 위
+    rig.rotation.y = CHAR_FACE; // 정면 회전(월드 Y)
+    j.userData.person.add(rig);
+  });
+}, undefined, (e) => console.warn("character.glb load fail", e));
 
 /* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 + 닉네임 라벨 ---- */
 const labelCanvas = document.createElement("canvas");
@@ -189,7 +207,7 @@ meSprite.scale.set(1.9, 0.63, 1);
 meSprite.position.set(0, 3.05, -3.5);
 scene.add(meSprite);
 // 가운데 캐릭터: 핑크 보타이로 구분
-judges[2].userData.person.children[1].material = new THREE.MeshStandardMaterial({ color: 0xff5a5f, emissive: 0x551015, emissiveIntensity: 0.4 });
+// (가운데 "나" 구분은 닉네임 라벨 + 스포트라이트로)
 const meSpot = new THREE.SpotLight(0xfff0d8, 95, 16, 0.5, 0.5, 1.2);
 meSpot.position.set(0, 9, 2); meSpot.target.position.set(0, 2, -3.7); scene.add(meSpot, meSpot.target);
 
