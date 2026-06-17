@@ -550,11 +550,13 @@ async function intro() {
   Sfx.resume();
   readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
+  startLiveRec();                  // 녹화 시작(슬롯·사진)
   await slotReveal(chosenIndex);
   cam.zoom = 1;
   await sleep(1500);
   $("#prompt").hidden = false;
   $("#play").hidden = false;
+  pauseLiveRec();                  // 입력(고민) 동안 일시정지
   $("#caption").focus();
 }
 
@@ -562,15 +564,18 @@ async function intro() {
 async function retry() {
   if (revealing || busy) return;
   resetShareBtn();                 // 이전 라운드의 공유 대기 영상 정리
+  discardLiveRec();                // 이전 라운드 녹화 폐기
   $("#result").hidden = true;
   $("#bigboard").hidden = true;
   $("#caption").value = "";
   judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
   chosenIndex = pickRandomIndex(); // 랜덤(직전 사진 회피)
   item = items[chosenIndex];
+  startLiveRec();                  // 새 라운드 녹화 시작
   await slotReveal(chosenIndex);
   $("#prompt").hidden = false;
   $("#play").hidden = false;
+  pauseLiveRec();                  // 입력 동안 일시정지
   $("#caption").focus();
 }
 
@@ -603,6 +608,7 @@ async function judgeReaction(caption) {
   if (busy) return; busy = true;
   Sfx.resume();
   $("#play").hidden = true;
+  resumeLiveRec();                         // 채점 연출 녹화 재개(말하기·아이리스·깜놀)
 
   // (0) 내 캐릭터가 답을 말함 — 예능 게스트처럼
   await speakAnswer(caption);
@@ -630,6 +636,7 @@ async function judgeReaction(caption) {
   const bb = $("#bigboard");
   bb.hidden = false; bb.classList.remove("slam"); void bb.offsetWidth; bb.classList.add("slam");
   await sleep(950);
+  finalizeLiveRec();                       // 깜놀 직후 녹화 종료 → 결과 뜨기 전 영상 준비완료
 
   // (3) 결과 카드 — 카메라 복귀 + 전광판 사진 복원
   cam.score = 0;
@@ -725,22 +732,70 @@ async function shareLink() {
   try { await navigator.clipboard.writeText(SHARE_URL); toast(t("linkCopied")); }
   catch (e) { toast(SHARE_URL); }
 }
-let pendingShareFile = null;                 // 녹화된 영상 — 다음 탭(제스처) 안에서 바로 공유
+let pendingShareFile = null;                 // (폴백 재연출용) 녹화 영상 — 다음 탭 제스처에서 공유
 function videoShareData(file) { return { files: [file], title: t("brand"), text: `${t("shareTextVideo")} ${HASHTAGS}` }; }
 function resetShareBtn() {
   pendingShareFile = null;
   const b = $("#share"); b.textContent = t("shareVideo"); b.classList.remove("ready"); b.disabled = false;
 }
-// 영상 공유 버튼: 1탭=녹화, (모바일에서 제스처 만료 시) 2탭=준비된 영상 즉시 공유
+
+/* ---- 라이브 녹화: 플레이를 따라 녹화(저장X), 결과 시점엔 영상이 준비됨 → 공유 1탭 ---- */
+const liveSupported = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+let liveRec = null, liveStream = null, liveChunks = [], liveVideoFile = null, liveMime = "";
+function cleanupLiveStream() {
+  try { if (liveStream) liveStream.getVideoTracks().forEach((t) => t.stop()); } catch (e) {} // 오디오(공유 버스)는 유지
+  liveStream = null;
+}
+function startLiveRec() {
+  if (!liveSupported) return;
+  discardLiveRec();
+  try {
+    liveStream = canvas.captureStream(30);
+    try { const at = Sfx.recordTrack(); if (at) liveStream.addTrack(at); } catch (e) {}
+    liveMime = pickMime();
+    liveRec = new MediaRecorder(liveStream, liveMime ? { mimeType: liveMime, videoBitsPerSecond: 6_000_000 } : undefined);
+    liveChunks = [];
+    liveRec.ondataavailable = (e) => { if (e.data && e.data.size) liveChunks.push(e.data); };
+    liveRec.start();
+  } catch (e) { liveRec = null; cleanupLiveStream(); }
+}
+function pauseLiveRec() { try { if (liveRec && liveRec.state === "recording") liveRec.pause(); } catch (e) {} }   // 입력(고민) 동안 멈춤
+function resumeLiveRec() { try { if (liveRec && liveRec.state === "paused") liveRec.resume(); } catch (e) {} }   // 채점 연출 재개
+function finalizeLiveRec() {                 // 녹화 종료 → 영상 준비(공유 대기)
+  if (!liveRec) return;
+  const r = liveRec; liveRec = null;
+  r.onstop = () => {
+    try {
+      const blob = new Blob(liveChunks, { type: liveChunks[0] ? liveChunks[0].type : (liveMime || "video/mp4") });
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      liveVideoFile = new File([blob], `kkamnol-grandprix.${ext}`, { type: blob.type || "video/mp4" });
+    } catch (e) {}
+    cleanupLiveStream();
+  };
+  try { r.stop(); } catch (e) { cleanupLiveStream(); }
+}
+function discardLiveRec() {                   // 공유 안 하고 정리(다시 도전 등)
+  try { if (liveRec && liveRec.state !== "inactive") { liveRec.onstop = null; liveRec.stop(); } } catch (e) {}
+  liveRec = null; liveChunks = []; liveVideoFile = null; cleanupLiveStream();
+}
+
+// 영상 공유 버튼
 async function onShareBtn() {
   if (recording) return;
-  if (pendingShareFile) {                     // 이번 탭 제스처 안에서 공유 시트 오픈
+  if (pendingShareFile) {                     // (폴백) 준비된 영상 이번 탭 제스처에 공유
     const file = pendingShareFile;
     try { await navigator.share(videoShareData(file)); resetShareBtn(); }
     catch (e) { if (e && e.name === "AbortError") return; saveBlob(file); toast(t("videoSavedHint")); resetShareBtn(); }
     return;
   }
-  recordReplay();
+  if (liveVideoFile) {                         // ★ 라이브 녹화본 즉시 공유 (진짜 1탭, 제스처 유효)
+    if (navigator.canShare && navigator.canShare({ files: [liveVideoFile] })) {
+      try { await navigator.share(videoShareData(liveVideoFile)); return; }
+      catch (e) { if (e && e.name === "AbortError") return; saveBlob(liveVideoFile); toast(t("videoSavedHint")); return; }
+    }
+    saveBlob(liveVideoFile); toast(t("videoSavedHint")); return; // 데스크톱(파일 공유 미지원) → 저장
+  }
+  recordReplay();                              // 라이브 녹화 미지원 → 재연출 녹화(폴백)
 }
 async function recordReplay() {
   if (recording || busy) return;
