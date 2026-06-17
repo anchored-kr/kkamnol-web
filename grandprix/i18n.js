@@ -213,8 +213,10 @@ export function pickLang() {
   return "en";
 }
 
-export const lang = pickLang();
-export const L = DICT[lang] || DICT.en;
+// 현재 언어(런타임 변경 가능). t()는 현재 L을 읽으므로 setLang 후 자동 반영.
+let current = pickLang();
+let L = DICT[current] || DICT.en;
+export const getLang = () => current;
 export const t = (key) => (L[key] != null ? L[key] : (DICT.en[key] != null ? DICT.en[key] : key));
 
 // data-i18n / data-i18n-ph / data-i18n-aria 속성을 가진 모든 요소에 번역 적용
@@ -222,8 +224,16 @@ export function applyI18n(root = document) {
   root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.setAttribute("placeholder", t(el.dataset.i18nPh)); });
   root.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
-  document.documentElement.lang = lang;
+  document.documentElement.lang = current;
   document.title = t("docTitle");
   const desc = document.querySelector('meta[name="description"]');
   if (desc) desc.setAttribute("content", t("docDesc"));
+}
+
+// 언어를 즉시 전환하고 HTML 전체에 재적용. 지원 언어면 true.
+export function setLang(code) {
+  if (!code || !DICT[code] || code === current) return false;
+  current = code; L = DICT[code];
+  applyI18n();
+  return true;
 }

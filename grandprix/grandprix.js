@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { t, lang, applyI18n } from "/grandprix/i18n.js";
+import { t, applyI18n, setLang } from "/grandprix/i18n.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
@@ -309,13 +309,16 @@ async function typeCaption(text) {
 }
 
 const boomCanvas = document.createElement("canvas"); boomCanvas.width = 760; boomCanvas.height = 300;
-{
+const boomTex = new THREE.CanvasTexture(boomCanvas); boomTex.colorSpace = THREE.SRGBColorSpace;
+function drawBoomCanvas() {            // 언어 전환 시 다시 구울 수 있도록 함수화
   const x = boomCanvas.getContext("2d");
+  x.clearRect(0, 0, 760, 300);
   x.font = "900 italic 170px 'Noto Sans KR','Apple Color Emoji',sans-serif";
   x.textAlign = "center"; x.textBaseline = "middle";
   x.fillStyle = "#ffce2e"; x.fillText(t("kkamnol") + " 🎉", 380, 160);
+  boomTex.needsUpdate = true;
 }
-const boomTex = new THREE.CanvasTexture(boomCanvas); boomTex.colorSpace = THREE.SRGBColorSpace;
+drawBoomCanvas();
 const boomSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: boomTex, transparent: true, depthTest: false }));
 boomSprite.scale.set(6.2, 2.4, 1); boomSprite.position.set(0, 5.4, -7.6); boomSprite.visible = false;
 scene.add(boomSprite);
@@ -711,6 +714,22 @@ const CC2VAL = {
   TH: "🇹🇭|ไทย", PH: "🇵🇭|Pilipinas", CA: "🇨🇦|Canada", AU: "🇦🇺|Australia",
 };
 const natHas = (v) => [...natEl.options].some((o) => o.value === v);
+
+// 국적(국기) → UI 언어. 시작 메뉴에서 국적을 고르면 그 언어로 즉시 전환.
+const FLAG2LANG = {
+  "🇰🇷": "ko", "🇺🇸": "en", "🇯🇵": "ja", "🇨🇳": "zh", "🇹🇼": "zh-TW",
+  "🇬🇧": "en", "🇫🇷": "fr", "🇩🇪": "de", "🇪🇸": "es", "🇮🇹": "it",
+  "🇧🇷": "pt", "🇲🇽": "es", "🇮🇳": "hi", "🇮🇩": "id", "🇻🇳": "vi",
+  "🇹🇭": "th", "🇵🇭": "fil", "🇨🇦": "en", "🇦🇺": "en", "🌍": "en",
+};
+// 선택한 국적의 언어로 전환 + 미리 구운 텍스트(빅보드·boom·라벨) 갱신
+function switchLangByNat() {
+  const [flag] = (natEl.value || "🇰🇷|한국").split("|");
+  if (!setLang(FLAG2LANG[flag])) return;   // 같은 언어면 변경 없음
+  $("#bigboard").textContent = t("kkamnol") + " 🎉";
+  drawBoomCanvas();
+  drawLabel(`${flag} ${nickEl.value.trim() || t("me")}`);
+}
 let defaultLocked = false; // 저장값 있거나 유저가 직접 고르면 자동 변경 중단
 function setDefaultNat(cc) {
   if (defaultLocked) return;
@@ -720,7 +739,7 @@ function setDefaultNat(cc) {
 try {
   const s = JSON.parse(localStorage.getItem("gp-player") || "{}");
   if (s.nick) { nickEl.value = s.nick; $("#startBtn").disabled = false; }
-  if (s.nat && natHas(s.nat)) { natEl.value = s.nat; defaultLocked = true; }
+  if (s.nat && natHas(s.nat)) { natEl.value = s.nat; defaultLocked = true; switchLangByNat(); }
 } catch (e) {}
 if (!defaultLocked) {
   const reg = (navigator.language || (navigator.languages && navigator.languages[0]) || "").split("-")[1];
@@ -730,7 +749,7 @@ if (!defaultLocked) {
     .catch(() => {});
 }
 nickEl.addEventListener("input", () => { $("#startBtn").disabled = !nickEl.value.trim(); });
-natEl.addEventListener("change", () => { defaultLocked = true; });
+natEl.addEventListener("change", () => { defaultLocked = true; switchLangByNat(); });
 function readPlayer() {
   player.nick = nickEl.value.trim() || t("me");
   const [flag, nation] = (natEl.value || "🇰🇷|한국").split("|");
