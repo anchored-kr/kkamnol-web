@@ -650,18 +650,59 @@ async function shareResult() {
   cv.toBlob(async (blob) => {
     if (!blob) return;
     const file = new File([blob], "kkamnol-grandprix.png", { type: "image/png" });
-    const data = { files: [file], title: t("brand"), text: t("shareText") };
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share(data); } catch (e) {} return; }
-    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "kkamnol-grandprix.png"; a.click(); URL.revokeObjectURL(url);
+    const data = { files: [file], title: t("brand"), text: `${t("shareText")} ${HASHTAGS}` };
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share(data); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    saveBlob(file);
   }, "image/png");
 }
 
 /* ---- 영상 녹화 + 공유 (슬롯→사진→캡션→깜놀 리플레이) ---- */
 let recording = false;
 function pickMime() {
-  const opts = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"];
+  // MP4(H.264/AAC) 우선 — 인스타·틱톡·X 등 SNS가 받는 포맷. 미지원 시 WebM 폴백.
+  const opts = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1.4d002a,mp4a.40.2",
+    "video/mp4;codecs=h264,aac",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+  ];
   for (const m of opts) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
   return "";
+}
+const SHARE_URL = "https://kkamnol.xyz/grandprix";
+const HASHTAGS = "#깜놀그랑프리 #KkamnolGrandPrix";
+// 토스트 안내 (자체 완결 · DOM 동적 생성)
+let toastEl = null;
+function toast(msg, ms = 2600) {
+  if (!toastEl) {
+    toastEl = document.createElement("div");
+    toastEl.style.cssText = "position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translateX(-50%) translateY(12px);max-width:86vw;z-index:9;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;background:rgba(20,18,12,.94);color:#fff;font-weight:700;font-size:14px;line-height:1.4;text-align:center;padding:12px 18px;border-radius:14px;border:1px solid rgba(255,206,46,.5);box-shadow:0 8px 30px rgba(0,0,0,.5)";
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = msg;
+  requestAnimationFrame(() => { toastEl.style.opacity = "1"; toastEl.style.transform = "translateX(-50%) translateY(0)"; });
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toastEl.style.opacity = "0"; toastEl.style.transform = "translateX(-50%) translateY(12px)"; }, ms);
+}
+function saveBlob(file) {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a"); a.href = url; a.download = file.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+// 게임 링크 공유 (카카오·X·데스크톱 등 — 파일 대신 URL). 네이티브 공유 시트 or 클립보드 복사.
+async function shareLink() {
+  const data = { title: t("brand"), text: `${t("shareText")} ${HASHTAGS}`, url: SHARE_URL };
+  if (navigator.share) {
+    try { await navigator.share(data); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(SHARE_URL); toast(t("linkCopied")); }
+  catch (e) { toast(SHARE_URL); }
 }
 async function recordReplay() {
   if (recording || busy) return;
@@ -675,7 +716,8 @@ async function recordReplay() {
   const stream = canvas.captureStream(30);
   try { const at = Sfx.recordTrack(); if (at) stream.addTrack(at); } catch (e) {}
   const mime = pickMime();
-  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const recOpts = mime ? { mimeType: mime, videoBitsPerSecond: 8_000_000 } : undefined;
+  let rec; try { rec = new MediaRecorder(stream, recOpts); } catch (e) { rec = new MediaRecorder(stream); }
   const chunks = [];
   rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   const stopped = new Promise((res) => (rec.onstop = res));
@@ -708,15 +750,16 @@ async function recordReplay() {
   btn.textContent = prev; btn.disabled = false;
   $("#result").hidden = false;
 
-  const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "video/webm" });
+  const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : (mime || "video/webm") });
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-  const file = new File([blob], `kkamnol-grandprix.${ext}`, { type: blob.type || "video/webm" });
-  const data = { files: [file], title: t("brand"), text: t("shareTextVideo") };
+  const file = new File([blob], `kkamnol-grandprix.${ext}`, { type: blob.type || "video/mp4" });
+  const data = { files: [file], title: t("brand"), text: `${t("shareTextVideo")} ${HASHTAGS}` };
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share(data); return; } catch (e) {}
+    try { await navigator.share(data); return; }            // 네이티브 공유 시트 → 인스타·틱톡 등
+    catch (e) { if (e && e.name === "AbortError") return; }  // 사용자가 취소 → 그냥 종료(다운로드 안 함)
   }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url);
+  saveBlob(file);                                            // 공유 미지원(주로 데스크톱) → 저장 + 안내
+  toast(t("videoSavedHint"));
 }
 
 /* ---- 리더보드 (국적별 답변 + 좋아요/순위) — 로컬 데모 시드 ----
@@ -846,4 +889,5 @@ $("#startBtn").addEventListener("click", intro);
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
 $("#share").addEventListener("click", recordReplay);
+$("#shareLink").addEventListener("click", shareLink);
 $("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });

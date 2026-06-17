@@ -68,7 +68,9 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 .lb-row.mine { background: rgba(255, 90, 95, 0.16); border-radius: 10px; }
 .like { flex: none; background: rgba(255, 90, 95, 0.18); border: 1px solid rgba(255, 90, 95, 0.45); color: #ff9da0; border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 .like:hover { background: rgba(255, 90, 95, 0.3); }
-.actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+.actions .btn { padding: 14px 18px; font-size: 15px; flex: 1 1 auto; }
+#share { flex-basis: 100%; }
 
 /* 시작 화면 */
 .startscreen[hidden] { display: none; }
