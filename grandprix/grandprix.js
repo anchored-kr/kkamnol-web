@@ -45,6 +45,23 @@ const Sfx = (() => {
     tick() { if (!muted) tone("triangle", 900, ensure().currentTime, 0.08, 0.12); },        // 슬롯 띵
     click() { if (!muted) tone("square", 440, ensure().currentTime, 0.08, 0.09); },          // 레버
     type() { if (!muted) tone("square", 1450 + Math.random() * 480, ensure().currentTime, 0.03, 0.045); }, // 키 입력음(소프트)
+    // 애니멀리즈: 글자 1개당 짧은 지저귐(동물의 숲 말투). 캐릭터가 말하는 소리.
+    blip(ch, pitch = 1) {
+      if (muted) return;
+      const c = ensure(), t = c.currentTime;
+      const code = (ch && ch.charCodeAt(0)) || 97;
+      const base = 300 * pitch;                                   // 높은 피치 = 귀여운 보이스
+      const f = base + (code % 14) * 26 + (Math.random() * 28 - 14);
+      const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      o.type = "square";
+      o.frequency.setValueAtTime(f * 1.7, t);                     // 위→아래 살짝 처지는 지저귐
+      o.frequency.exponentialRampToValueAtTime(f, t + 0.05);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.08, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.085);
+      lp.type = "lowpass"; lp.frequency.value = 2400;
+      o.connect(g).connect(lp).connect(bus); o.start(t); o.stop(t + 0.1);
+    },
     riser(dur = 1.5) {  // 아이리스 줌인 긴장 고조(피치 상승 + 휘이)
       if (muted) return; const c = ensure(), t = c.currentTime;
       const o = c.createOscillator(), g = c.createGain();
@@ -213,7 +230,7 @@ function makeJudge(x, i) {
   const person = new THREE.Group(); // GLB 캐릭터가 로드되면 채워짐
   g.add(person);
   g.position.set(x, 0, -3.7);
-  g.userData = { barMat, person, pulse: 0 };
+  g.userData = { barMat, person, pulse: 0, talking: 0 };
   judges.push(g); return g;
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
@@ -269,6 +286,28 @@ scene.add(meSprite);
 // (가운데 "나" 구분은 닉네임 라벨 + 스포트라이트로)
 const meSpot = new THREE.SpotLight(0xfff0d8, 95, 16, 0.5, 0.5, 1.2);
 meSpot.position.set(0, 9, 2); meSpot.target.position.set(0, 2, -3.7); scene.add(meSpot, meSpot.target);
+
+/* ---- 말풍선: 내 캐릭터가 답을 "말하는" 연출 (애니멀리즈와 동기) ---- */
+const speechCanvas = document.createElement("canvas"); speechCanvas.width = 900; speechCanvas.height = 340;
+const speechTex = new THREE.CanvasTexture(speechCanvas); speechTex.colorSpace = THREE.SRGBColorSpace;
+function drawSpeech(text) {
+  const x = speechCanvas.getContext("2d");
+  x.clearRect(0, 0, 900, 340);
+  const bx = 70, by = 26, bw = 760, bh = 196, r = 40;
+  x.beginPath();
+  x.moveTo(bx + r, by); x.arcTo(bx + bw, by, bx + bw, by + bh, r); x.arcTo(bx + bw, by + bh, bx, by + bh, r);
+  x.arcTo(bx, by + bh, bx, by, r); x.arcTo(bx, by, bx + bw, by, r); x.closePath();
+  x.moveTo(450 - 38, by + bh - 2); x.lineTo(442, by + bh + 56); x.lineTo(450 + 48, by + bh - 2); // 꼬리(아래 캐릭터로)
+  x.fillStyle = "rgba(255,255,255,0.97)"; x.shadowColor = "rgba(0,0,0,0.3)"; x.shadowBlur = 18; x.shadowOffsetY = 5; x.fill();
+  x.shadowColor = "transparent";
+  x.fillStyle = "#16140d"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = "800 48px 'Noto Sans KR','Apple Color Emoji',sans-serif";
+  wrapText(x, text || "", 450, by + bh / 2, 660, 60);
+  speechTex.needsUpdate = true;
+}
+const speechSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: speechTex, transparent: true, depthTest: false }));
+speechSprite.scale.set(3.7, 1.4, 1); speechSprite.position.set(0, 3.62, -3.3); speechSprite.visible = false;
+scene.add(speechSprite);
 
 /* ---- 영상용 캡션/깜놀 스프라이트 (캔버스 녹화에 담기도록 3D로) ---- */
 const capCanvas = document.createElement("canvas"); capCanvas.width = 1024; capCanvas.height = 220;
@@ -335,7 +374,8 @@ const cam = {
   estPos: new THREE.Vector3(0.9, 5.7, 12), estLook: new THREE.Vector3(0, 3.4, -3),
   playPos: new THREE.Vector3(0, 2.5, 6.4), playLook: new THREE.Vector3(0, 3.3, -7),
   scorePos: new THREE.Vector3(0, 3.95, 1.1), scoreLook: new THREE.Vector3(0, 4.4, -8), // 전광판 다이브
-  zoom: 0, zoomCur: 0, punch: 0, punchCur: 0, shake: 0, score: 0, scoreCur: 0,
+  speakPos: new THREE.Vector3(0, 3.25, 2.9), speakLook: new THREE.Vector3(0, 2.95, -3.5), // 내 캐릭터 클로즈업(말풍선 포함)
+  zoom: 0, zoomCur: 0, punch: 0, punchCur: 0, shake: 0, score: 0, scoreCur: 0, speak: 0, speakCur: 0,
 };
 let clock = 0, framePulse = 0;
 function animate() {
@@ -352,6 +392,12 @@ function animate() {
   let lx = lerp(cam.estLook.x, cam.playLook.x, z);
   let ly = lerp(cam.estLook.y, cam.playLook.y, z);
   let lz = lerp(cam.estLook.z, cam.playLook.z, z);
+  cam.speakCur += (cam.speak - cam.speakCur) * 0.08;      // 내 캐릭터 클로즈업 블렌드
+  if (cam.speakCur > 0.001) {
+    const s = ease(cam.speakCur);
+    px = lerp(px, cam.speakPos.x, s); py = lerp(py, cam.speakPos.y, s); pz = lerp(pz, cam.speakPos.z, s);
+    lx = lerp(lx, cam.speakLook.x, s); ly = lerp(ly, cam.speakLook.y, s); lz = lerp(lz, cam.speakLook.z, s);
+  }
   cam.scoreCur += (cam.score - cam.scoreCur) * 0.07;      // 전광판 다이브 블렌드
   if (cam.scoreCur > 0.001) {
     const s = ease(cam.scoreCur);
@@ -363,8 +409,19 @@ function animate() {
   frameMat.emissiveIntensity = 0.8 + Math.sin(clock * 2.2) * 0.18 + framePulse;
   if (framePulse > 0.001) framePulse *= 0.9;
   judges.forEach((j) => {
-    if (j.userData.pulse > 0.001) { j.userData.pulse *= 0.9; j.userData.person.position.y = Math.abs(Math.sin(clock * 22)) * j.userData.pulse * 0.22; }
-    else j.userData.person.position.y = 0;
+    const p = j.userData.person;
+    if (j.userData.talking > 0) {                          // 말하는 중: 빠른 입놀림(바운스+스쿼시)
+      const m = Math.abs(Math.sin(clock * 40));
+      p.position.y = m * 0.11;
+      p.scale.set(1, 1 - m * 0.08, 1);
+    } else if (j.userData.pulse > 0.001) {
+      j.userData.pulse *= 0.9;
+      p.position.y = Math.abs(Math.sin(clock * 22)) * j.userData.pulse * 0.22;
+      if (p.scale.y !== 1) p.scale.set(1, 1, 1);
+    } else {
+      if (p.position.y !== 0) p.position.y = 0;
+      if (p.scale.y !== 1) p.scale.set(1, 1, 1);
+    }
   });
   renderer.render(scene, camera);
 }
@@ -498,11 +555,37 @@ async function retry() {
 
 /* ---- 반응 시퀀스 ---- */
 let busy = false;
+const ME = 2; // 가운데 = 나(플레이어)
 function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// 내 캐릭터가 답을 직접 "말하는" 연출 (입놀림 + 말풍선 + 애니멀리즈)
+async function speakAnswer(caption) {
+  const me = judges[ME];
+  cam.speak = 1;                          // 내 캐릭터 클로즈업
+  meSprite.visible = false;               // 닉네임 라벨 → 말풍선으로
+  drawSpeech(""); speechSprite.visible = true;
+  await sleep(300);                       // 카메라 들어오는 동안
+  me.userData.talking = 1;                // 입놀림 시작
+  let shown = "";
+  for (const ch of [...caption]) {
+    shown += ch; drawSpeech(shown);
+    if (ch !== " " && ch !== "\n") Sfx.blip(ch);
+    await sleep(ch === " " ? 70 : /[.,!?…~]/.test(ch) ? 150 : 60 + Math.random() * 26);
+  }
+  await sleep(440);                        // 말 끝나고 잠깐 정지
+  me.userData.talking = 0;
+  speechSprite.visible = false; meSprite.visible = true;
+  cam.speak = 0;
+}
+
 async function judgeReaction(caption) {
   if (busy) return; busy = true;
   Sfx.resume();
   $("#play").hidden = true;
+
+  // (0) 내 캐릭터가 답을 말함 — 예능 게스트처럼
+  await speakAnswer(caption);
+
   $("#suspense").hidden = false;
 
   // (1) 전광판으로 카메라 다이브 + 8각 아이리스가 얼굴 위로 조여듦
