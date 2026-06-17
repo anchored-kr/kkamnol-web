@@ -27,22 +27,22 @@
 
     <div class="hud">
       <div class="topbar">
-        <a class="exit" href="/">← 나가기</a>
-        <div class="title">깜놀 그랑프리</div>
+        <a class="exit" href="/" data-i18n="exit">← 나가기</a>
+        <div class="title" data-i18n="brand">깜놀 그랑프리</div>
         <div class="topright">
-          <span class="block">A블록 · 3번째</span>
-          <button id="mute" class="mute" aria-label="소리 켜기/끄기">🔊</button>
+          <span class="block" data-i18n="block">A블록 · 3번째</span>
+          <button id="mute" class="mute" data-i18n-aria="muteLabel" aria-label="소리 켜기/끄기">🔊</button>
         </div>
       </div>
 
-      <div id="prompt" class="prompt" hidden>사진 한 줄 평</div>
+      <div id="prompt" class="prompt" data-i18n="prompt" hidden>사진 한 줄 평</div>
 
       <div id="startScreen" class="startscreen">
-        <div class="start-title">깜놀 그랑프리</div>
-        <p class="start-sub">사진 한 줄 평 · 당신이 출연자</p>
+        <div class="start-title" data-i18n="brand">깜놀 그랑프리</div>
+        <p class="start-sub" data-i18n="tagline">사진 한 줄 평 · 당신이 출연자</p>
         <div class="start-form">
-          <input id="nick" class="start-input" maxlength="8" placeholder="닉네임" autocomplete="off" />
-          <select id="nat" class="start-select" aria-label="국적 / Country">
+          <input id="nick" class="start-input" maxlength="8" data-i18n-ph="nickPh" placeholder="닉네임" autocomplete="off" />
+          <select id="nat" class="start-select" data-i18n-aria="natLabel" aria-label="국적 / Country">
             <option value="🇰🇷|한국">🇰🇷 한국</option>
             <option value="🇺🇸|USA">🇺🇸 USA</option>
             <option value="🇯🇵|日本">🇯🇵 日本</option>
@@ -65,17 +65,17 @@
             <option value="🌍|기타">🌍 기타 / Other</option>
           </select>
         </div>
-        <button id="startBtn" class="btn btn--primary start-btn" disabled>▶ 시작하기</button>
-        <p class="start-hint">🔊 소리 켜고 플레이하세요</p>
+        <button id="startBtn" class="btn btn--primary start-btn" data-i18n="start" disabled>▶ 시작하기</button>
+        <p class="start-hint" data-i18n="soundHint">🔊 소리 켜고 플레이하세요</p>
       </div>
 
-      <div id="suspense" class="suspense" hidden>심사 중…</div>
+      <div id="suspense" class="suspense" data-i18n="judging" hidden>심사 중…</div>
       <div id="bigboard" class="bigboard" hidden>깜놀! 🎉</div>
 
       <section id="play" class="bottombar" hidden>
         <form id="form" autocomplete="off">
-          <input id="caption" maxlength="40" placeholder="전광판 사진에 한 마디…" />
-          <button type="submit" class="btn btn--primary">답변! →</button>
+          <input id="caption" maxlength="40" data-i18n-ph="captionPh" placeholder="전광판 사진에 한 마디…" />
+          <button type="submit" class="btn btn--primary" data-i18n="submit">답변! →</button>
         </form>
       </section>
 
@@ -83,14 +83,14 @@
         <p class="mycap" id="myCaption"></p>
         <div class="lb">
           <div class="lb-head">
-            <h3>🏆 리더보드</h3>
+            <h3 data-i18n="leaderboard">🏆 리더보드</h3>
             <div id="lbFilter" class="lb-filter"></div>
           </div>
           <ol id="lbList" class="lb-list"></ol>
         </div>
         <div class="actions">
-          <button id="share" class="btn btn--primary">🎬 영상 공유</button>
-          <button id="retry" class="btn btn--ghost">다시 도전</button>
+          <button id="share" class="btn btn--primary" data-i18n="shareVideo">🎬 영상 공유</button>
+          <button id="retry" class="btn btn--ghost" data-i18n="retry">다시 도전</button>
         </div>
       </section>
     </div>
