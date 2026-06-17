@@ -415,14 +415,21 @@ function ensureLoaded(i, timeout = 2600) {
   });
 }
 
+// 완전 랜덤 선택 (직전 사진은 피해 연속 중복 방지)
+function pickRandomIndex() {
+  if (items.length <= 1) return 0;
+  let i; do { i = Math.floor(Math.random() * items.length); } while (i === chosenIndex);
+  return i;
+}
+
 fetch("/grandprix/photos.json", { cache: "no-store" })
   .then((r) => r.json())
   .then((data) => {
     if (Array.isArray(data) && data.length) {
       items = data;
-      chosenIndex = Math.floor(Date.now() / 86400000) % data.length; // 데일리 사진
+      chosenIndex = pickRandomIndex(); // 매 접속 완전 랜덤
       item = items[chosenIndex];
-      ensureLoaded(chosenIndex); // 오늘의 사진 미리 준비
+      ensureLoaded(chosenIndex);
     }
     drawPlaceholder();
   })
@@ -478,7 +485,7 @@ async function retry() {
   $("#bigboard").hidden = true;
   $("#caption").value = "";
   judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
-  chosenIndex = Math.floor(Math.random() * items.length); // 랜덤 사진 선택
+  chosenIndex = pickRandomIndex(); // 랜덤(직전 사진 회피)
   item = items[chosenIndex];
   await slotReveal(chosenIndex);
   $("#prompt").hidden = false;
