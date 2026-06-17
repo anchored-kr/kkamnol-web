@@ -189,21 +189,21 @@ export const DICT = {
 
 // 공유 관련 문구(버튼·토스트) — 기존 DICT에 병합. 누락 언어는 영어 폴백.
 const SHARE_EXTRA = {
-  ko: { shareLink: "🔗 링크 공유", videoSavedHint: "영상 저장됨! 인스타·틱톡에 올려보세요", linkCopied: "링크 복사됨!" },
-  en: { shareLink: "🔗 Share link", videoSavedHint: "Saved! Post it to Reels/TikTok", linkCopied: "Link copied!" },
-  ja: { shareLink: "🔗 リンク共有", videoSavedHint: "保存しました！リール/TikTokへ", linkCopied: "リンクをコピー！" },
-  zh: { shareLink: "🔗 分享链接", videoSavedHint: "已保存！发到短视频吧", linkCopied: "链接已复制！" },
-  "zh-TW": { shareLink: "🔗 分享連結", videoSavedHint: "已儲存！發到短影音吧", linkCopied: "連結已複製！" },
-  es: { shareLink: "🔗 Compartir enlace", videoSavedHint: "¡Guardado! Súbelo a Reels/TikTok", linkCopied: "¡Enlace copiado!" },
-  pt: { shareLink: "🔗 Compartilhar link", videoSavedHint: "Salvo! Poste no Reels/TikTok", linkCopied: "Link copiado!" },
-  fr: { shareLink: "🔗 Partager le lien", videoSavedHint: "Enregistré ! Publie-le sur Reels/TikTok", linkCopied: "Lien copié !" },
-  de: { shareLink: "🔗 Link teilen", videoSavedHint: "Gespeichert! Poste es auf Reels/TikTok", linkCopied: "Link kopiert!" },
-  it: { shareLink: "🔗 Condividi link", videoSavedHint: "Salvato! Pubblicalo su Reels/TikTok", linkCopied: "Link copiato!" },
-  id: { shareLink: "🔗 Bagikan tautan", videoSavedHint: "Tersimpan! Posting ke Reels/TikTok", linkCopied: "Tautan disalin!" },
-  vi: { shareLink: "🔗 Chia sẻ liên kết", videoSavedHint: "Đã lưu! Đăng lên Reels/TikTok", linkCopied: "Đã sao chép!" },
-  th: { shareLink: "🔗 แชร์ลิงก์", videoSavedHint: "บันทึกแล้ว! โพสต์ลง Reels/TikTok", linkCopied: "คัดลอกลิงก์แล้ว!" },
-  hi: { shareLink: "🔗 लिंक शेयर करें", videoSavedHint: "सेव हो गया! Reels/TikTok पर डालें", linkCopied: "लिंक कॉपी हो गया!" },
-  fil: { shareLink: "🔗 I-share ang link", videoSavedHint: "Na-save! I-post sa Reels/TikTok", linkCopied: "Nakopya ang link!" },
+  ko: { shareLink: "🔗 링크 공유", videoSavedHint: "영상 저장됨! 인스타·틱톡에 올려보세요", linkCopied: "링크 복사됨!", tapToShare: "✅ 영상 준비완료 — 눌러서 공유!", shareNow: "📤 지금 공유" },
+  en: { shareLink: "🔗 Share link", videoSavedHint: "Saved! Post it to Reels/TikTok", linkCopied: "Link copied!", tapToShare: "✅ Video ready — tap to share!", shareNow: "📤 Share now" },
+  ja: { shareLink: "🔗 リンク共有", videoSavedHint: "保存しました！リール/TikTokへ", linkCopied: "リンクをコピー！", tapToShare: "✅ 動画準備OK — タップで共有！", shareNow: "📤 今すぐ共有" },
+  zh: { shareLink: "🔗 分享链接", videoSavedHint: "已保存！发到短视频吧", linkCopied: "链接已复制！", tapToShare: "✅ 视频已就绪 — 点按分享！", shareNow: "📤 立即分享" },
+  "zh-TW": { shareLink: "🔗 分享連結", videoSavedHint: "已儲存！發到短影音吧", linkCopied: "連結已複製！", tapToShare: "✅ 影片已就緒 — 點按分享！", shareNow: "📤 立即分享" },
+  es: { shareLink: "🔗 Compartir enlace", videoSavedHint: "¡Guardado! Súbelo a Reels/TikTok", linkCopied: "¡Enlace copiado!", tapToShare: "✅ Vídeo listo — ¡toca para compartir!", shareNow: "📤 Compartir ya" },
+  pt: { shareLink: "🔗 Compartilhar link", videoSavedHint: "Salvo! Poste no Reels/TikTok", linkCopied: "Link copiado!", tapToShare: "✅ Vídeo pronto — toque para compartilhar!", shareNow: "📤 Compartilhar" },
+  fr: { shareLink: "🔗 Partager le lien", videoSavedHint: "Enregistré ! Publie-le sur Reels/TikTok", linkCopied: "Lien copié !", tapToShare: "✅ Vidéo prête — touchez pour partager !", shareNow: "📤 Partager" },
+  de: { shareLink: "🔗 Link teilen", videoSavedHint: "Gespeichert! Poste es auf Reels/TikTok", linkCopied: "Link kopiert!", tapToShare: "✅ Video bereit — zum Teilen tippen!", shareNow: "📤 Jetzt teilen" },
+  it: { shareLink: "🔗 Condividi link", videoSavedHint: "Salvato! Pubblicalo su Reels/TikTok", linkCopied: "Link copiato!", tapToShare: "✅ Video pronto — tocca per condividere!", shareNow: "📤 Condividi ora" },
+  id: { shareLink: "🔗 Bagikan tautan", videoSavedHint: "Tersimpan! Posting ke Reels/TikTok", linkCopied: "Tautan disalin!", tapToShare: "✅ Video siap — ketuk untuk berbagi!", shareNow: "📤 Bagikan sekarang" },
+  vi: { shareLink: "🔗 Chia sẻ liên kết", videoSavedHint: "Đã lưu! Đăng lên Reels/TikTok", linkCopied: "Đã sao chép!", tapToShare: "✅ Video sẵn sàng — chạm để chia sẻ!", shareNow: "📤 Chia sẻ ngay" },
+  th: { shareLink: "🔗 แชร์ลิงก์", videoSavedHint: "บันทึกแล้ว! โพสต์ลง Reels/TikTok", linkCopied: "คัดลอกลิงก์แล้ว!", tapToShare: "✅ วิดีโอพร้อม — แตะเพื่อแชร์!", shareNow: "📤 แชร์เลย" },
+  hi: { shareLink: "🔗 लिंक शेयर करें", videoSavedHint: "सेव हो गया! Reels/TikTok पर डालें", linkCopied: "लिंक कॉपी हो गया!", tapToShare: "✅ वीडियो तैयार — शेयर के लिए टैप करें!", shareNow: "📤 अभी शेयर करें" },
+  fil: { shareLink: "🔗 I-share ang link", videoSavedHint: "Na-save! I-post sa Reels/TikTok", linkCopied: "Nakopya ang link!", tapToShare: "✅ Handa na ang video — i-tap para i-share!", shareNow: "📤 I-share na" },
 };
 for (const k in SHARE_EXTRA) if (DICT[k]) Object.assign(DICT[k], SHARE_EXTRA[k]);
 

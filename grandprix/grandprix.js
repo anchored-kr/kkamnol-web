@@ -561,6 +561,7 @@ async function intro() {
 // 다시 도전: 랜덤 사진으로 슬롯부터 다시
 async function retry() {
   if (revealing || busy) return;
+  resetShareBtn();                 // 이전 라운드의 공유 대기 영상 정리
   $("#result").hidden = true;
   $("#bigboard").hidden = true;
   $("#caption").value = "";
@@ -724,10 +725,27 @@ async function shareLink() {
   try { await navigator.clipboard.writeText(SHARE_URL); toast(t("linkCopied")); }
   catch (e) { toast(SHARE_URL); }
 }
+let pendingShareFile = null;                 // 녹화된 영상 — 다음 탭(제스처) 안에서 바로 공유
+function videoShareData(file) { return { files: [file], title: t("brand"), text: `${t("shareTextVideo")} ${HASHTAGS}` }; }
+function resetShareBtn() {
+  pendingShareFile = null;
+  const b = $("#share"); b.textContent = t("shareVideo"); b.classList.remove("ready"); b.disabled = false;
+}
+// 영상 공유 버튼: 1탭=녹화, (모바일에서 제스처 만료 시) 2탭=준비된 영상 즉시 공유
+async function onShareBtn() {
+  if (recording) return;
+  if (pendingShareFile) {                     // 이번 탭 제스처 안에서 공유 시트 오픈
+    const file = pendingShareFile;
+    try { await navigator.share(videoShareData(file)); resetShareBtn(); }
+    catch (e) { if (e && e.name === "AbortError") return; saveBlob(file); toast(t("videoSavedHint")); resetShareBtn(); }
+    return;
+  }
+  recordReplay();
+}
 async function recordReplay() {
   if (recording || busy) return;
   if (!window.MediaRecorder || !canvas.captureStream) { shareResult(); return; } // 미지원 → 이미지 폴백
-  recording = true;
+  recording = true; pendingShareFile = null;
   const btn = $("#share"), prev = btn.textContent;
   btn.textContent = t("recording"); btn.disabled = true;
   $("#result").hidden = true; $("#bigboard").hidden = true;
@@ -773,12 +791,18 @@ async function recordReplay() {
   const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : (mime || "video/webm") });
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   const file = new File([blob], `kkamnol-grandprix.${ext}`, { type: blob.type || "video/mp4" });
-  const data = { files: [file], title: t("brand"), text: `${t("shareTextVideo")} ${HASHTAGS}` };
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share(data); return; }            // 네이티브 공유 시트 → 인스타·틱톡 등
-    catch (e) { if (e && e.name === "AbortError") return; }  // 사용자가 취소 → 그냥 종료(다운로드 안 함)
+    try { await navigator.share(videoShareData(file)); resetShareBtn(); return; } // 제스처 유효(데스크톱 등) → 바로 시트
+    catch (e) {
+      if (e && e.name === "AbortError") { resetShareBtn(); return; }               // 사용자가 취소
+      // 모바일: 녹화(~12s)로 제스처 만료 → 영상 준비해두고 한 번 더 탭하면 즉시 공유
+      pendingShareFile = file;
+      btn.textContent = t("shareNow"); btn.classList.add("ready");
+      toast(t("tapToShare"));
+      return;
+    }
   }
-  saveBlob(file);                                            // 공유 미지원(주로 데스크톱) → 저장 + 안내
+  saveBlob(file);                                            // 파일 공유 자체가 미지원(데스크톱) → 저장 + 안내
   toast(t("videoSavedHint"));
 }
 
@@ -908,6 +932,6 @@ function readPlayer() {
 $("#startBtn").addEventListener("click", intro);
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
-$("#share").addEventListener("click", recordReplay);
+$("#share").addEventListener("click", onShareBtn);
 $("#shareLink").addEventListener("click", shareLink);
 $("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });

@@ -42,6 +42,8 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 .btn--primary { background: #ffce2e; color: #1a1a1a; box-shadow: 0 8px 24px rgba(255,176,0,0.45); }
 .btn--primary:hover { transform: translateY(-2px); }
 .btn--ghost { background: rgba(255,255,255,0.1); color: #fff; border: 1.5px solid rgba(255,255,255,0.3); }
+.btn.ready { animation: readyPulse 1.1s ease-in-out infinite; }
+@keyframes readyPulse { 0%, 100% { box-shadow: 0 8px 24px rgba(255,176,0,0.45); } 50% { box-shadow: 0 8px 30px rgba(255,176,0,0.9), 0 0 0 5px rgba(255,206,46,0.3); } }
 
 /* 결과 + 리더보드 카드 */
 .result-card {
