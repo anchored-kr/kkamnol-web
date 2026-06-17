@@ -14,6 +14,10 @@ const ease = (t) => t * t * (3 - 2 * t);
 /* ============ 오디오 (Web Audio 합성) ============ */
 const Sfx = (() => {
   let ctx = null, muted = false, bus = null, rdest = null;
+  // animalese.wav: A–Z 8bit·44100·mono 샘플 (data offset 44, 글자당 6615샘플=0.15s)
+  // 코드 MIT / 오디오 CC BY 4.0 — © 2014 Josh Simmons (github.com/Acedio/animalese.js)
+  let alib = null;
+  fetch("/grandprix/animalese.wav").then((r) => r.arrayBuffer()).then((b) => { alib = new Uint8Array(b); }).catch(() => {});
   const ensure = () => {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -61,6 +65,22 @@ const Sfx = (() => {
       g.gain.exponentialRampToValueAtTime(0.001, t + 0.085);
       lp.type = "lowpass"; lp.frequency.value = 2400;
       o.connect(g).connect(lp).connect(bus); o.start(t); o.stop(t + 0.1);
+    },
+    // 진짜 animalese: animalese.wav의 글자 샘플을 잘라 피치 조절 후 bus로 재생.
+    // 비-알파벳(한글 등)은 무작위 A–Z로 → 동물의 숲식 횡설수설. 미로드 시 blip 폴백.
+    animalese(ch, pitch = 1.4) {
+      if (muted) return;
+      if (!alib) { this.blip(ch); return; }
+      const c = (ch || "").toUpperCase();
+      const idx = (c >= "A" && c <= "Z") ? c.charCodeAt(0) - 65 : (Math.random() * 26) | 0;
+      const SPL = 6615, OUT = 3307, start = 44 + SPL * idx; // 글자 0.15s 중 0.075s 사용
+      const cx = ensure();
+      const buf = cx.createBuffer(1, OUT, 44100), d = buf.getChannelData(0);
+      const p = pitch + (Math.random() * 0.12 - 0.06);      // 글자마다 미세 피치 변화
+      for (let i = 0; i < OUT; i++) { const s = alib[start + ((i * p) | 0)]; d[i] = s == null ? 0 : (s - 128) / 128; }
+      const src = cx.createBufferSource(); src.buffer = buf;
+      const g = cx.createGain(); g.gain.value = 0.9;
+      src.connect(g).connect(bus); src.start();
     },
     riser(dur = 1.5) {  // 아이리스 줌인 긴장 고조(피치 상승 + 휘이)
       if (muted) return; const c = ensure(), t = c.currentTime;
@@ -569,7 +589,7 @@ async function speakAnswer(caption) {
   let shown = "";
   for (const ch of [...caption]) {
     shown += ch; drawSpeech(shown);
-    if (ch !== " " && ch !== "\n") Sfx.blip(ch);
+    if (ch !== " " && ch !== "\n") Sfx.animalese(ch);     // 진짜 animalese 샘플
     await sleep(ch === " " ? 70 : /[.,!?…~]/.test(ch) ? 150 : 60 + Math.random() * 26);
   }
   await sleep(440);                        // 말 끝나고 잠깐 정지
