@@ -20,7 +20,6 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 .exit:hover { color: #fff; }
 .title { font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(18px, 4vw, 26px); letter-spacing: -0.02em; color: #ffce2e; text-shadow: 0 2px 16px rgba(255,176,0,0.5); }
 .topright { display: flex; align-items: center; gap: 12px; }
-.block { font-size: 12px; font-weight: 700; color: #ffce2e; opacity: 0.85; }
 .mute { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 999px; width: 38px; height: 34px; font-size: 16px; cursor: pointer; }
 
 .prompt { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); font-weight: 800; font-size: clamp(15px, 3.4vw, 20px); color: #1a1a1a; background: #ffce2e; padding: 7px 18px; border-radius: 999px; box-shadow: 0 6px 20px rgba(255,176,0,0.4); }
