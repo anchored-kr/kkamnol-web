@@ -68,18 +68,30 @@ const Sfx = (() => {
     },
     // 진짜 animalese: animalese.wav의 글자 샘플을 잘라 피치 조절 후 bus로 재생.
     // 비-알파벳(한글 등)은 무작위 A–Z로 → 동물의 숲식 횡설수설. 미로드 시 blip 폴백.
-    animalese(ch, pitch = 1.4) {
+    // opts.dur(길게=강세/늘임), opts.bend(끝으로 갈수록 피치↑/↓), opts.gain
+    animalese(ch, pitch = 1.4, opts = {}) {
       if (muted) return;
       if (!alib) { this.blip(ch); return; }
+      const dur = opts.dur || 0.075, bend = opts.bend || 0;
       const c = (ch || "").toUpperCase();
       const idx = (c >= "A" && c <= "Z") ? c.charCodeAt(0) - 65 : (Math.random() * 26) | 0;
-      const SPL = 6615, OUT = 3307, start = 44 + SPL * idx; // 글자 0.15s 중 0.075s 사용
+      const SPL = 6615, base = 44 + SPL * idx;               // 글자 샘플 0.15s
       const cx = ensure();
-      const buf = cx.createBuffer(1, OUT, 44100), d = buf.getChannelData(0);
-      const p = pitch + (Math.random() * 0.12 - 0.06);      // 글자마다 미세 피치 변화
-      for (let i = 0; i < OUT; i++) { const s = alib[start + ((i * p) | 0)]; d[i] = s == null ? 0 : (s - 128) / 128; }
+      const N = Math.max(1, (dur * 44100) | 0);
+      const buf = cx.createBuffer(1, N, 44100), d = buf.getChannelData(0);
+      const p0 = pitch + (Math.random() * 0.12 - 0.06);
+      let read = 0;
+      for (let i = 0; i < N; i++) {
+        const prog = i / N;
+        read += p0 * (1 + bend * prog);                     // 피치 글라이드(억양)
+        const s = alib[base + ((read % SPL) | 0)];          // 길면 샘플 루프 → 지속음(늘임)
+        let env = 1;                                        // 어택/릴리즈 엔벨로프
+        if (prog < 0.05) env = prog / 0.05;
+        else if (prog > 0.82) env = (1 - prog) / 0.18;
+        d[i] = (s == null ? 0 : (s - 128) / 128) * env;
+      }
       const src = cx.createBufferSource(); src.buffer = buf;
-      const g = cx.createGain(); g.gain.value = 0.9;
+      const g = cx.createGain(); g.gain.value = opts.gain || 0.9;
       src.connect(g).connect(bus); src.start();
     },
     riser(dur = 1.5) {  // 아이리스 줌인 긴장 고조(피치 상승 + 휘이)
@@ -544,6 +556,27 @@ async function slotReveal(targetIndex) {
   revealing = false;
 }
 
+// 애니멀리즈로 문구를 '강세 있게' 말함: 각 단어 마지막 음절을 길게+올려서 (그랑프리~~ 스타트~~~!)
+async function speakWithStress(phrase, finalDur = 0.5) {
+  const isPunc = (c) => /[.,!?…~\s]/.test(c);
+  const words = phrase.split(/\s+/).filter(Boolean);
+  for (let w = 0; w < words.length; w++) {
+    const chars = [...words[w]];
+    let lastVoiced = -1;
+    for (let i = chars.length - 1; i >= 0; i--) if (!isPunc(chars[i])) { lastVoiced = i; break; }
+    for (let i = 0; i < chars.length; i++) {
+      if (isPunc(chars[i])) continue;
+      if (i === lastVoiced) {                          // 강세 음절: 길게 + 피치 상승
+        const lastWord = w === words.length - 1;
+        const dur = lastWord ? finalDur : 0.32;
+        Sfx.animalese(chars[i], 1.5, { dur, bend: lastWord ? 0.4 : 0.28, gain: 1.0 });
+        await sleep(dur * 1000 + 50);
+      } else { Sfx.animalese(chars[i], 1.5); await sleep(62); }
+    }
+    await sleep(110);                                  // 단어 사이
+  }
+}
+
 // 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (애니멀리즈 보이스 + UI 펑)
 async function countdown() {
   const el = $("#countdown");
@@ -557,9 +590,9 @@ async function countdown() {
   }
   el.textContent = t("goStart"); el.classList.add("go");
   el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
-  flashScreen(); Sfx.impact(); Sfx.cheer(1.2);  // 스타트 펑!
-  for (const ch of [...t("goStart")]) { if (ch !== " ") Sfx.animalese(ch, 1.55); await sleep(54); } // 신나게 말함
-  await sleep(720);
+  flashScreen(); Sfx.impact(); Sfx.cheer(1.3);  // 스타트 펑!
+  await speakWithStress(t("goStart"), 0.55);     // 그랑프리~~ 스타트~~~! (강세)
+  await sleep(260);
   el.hidden = true; el.classList.remove("go", "pop");
 }
 
