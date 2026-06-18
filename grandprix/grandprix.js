@@ -581,12 +581,12 @@ async function speakWithStress(phrase, finalDur = 0.5) {
 async function countdown() {
   const el = $("#countdown");
   el.hidden = false; el.classList.remove("go");
-  const pitch = { "3": 1.15, "2": 1.4, "1": 1.7 };
+  const pitch = { "3": 1.1, "2": 1.3, "1": 1.5 };
   for (const n of ["3", "2", "1"]) {
     el.classList.remove("go"); el.textContent = n;
     el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
-    Sfx.animalese(n, pitch[n]); Sfx.tick();   // 캐릭터가 숫자를 말함 + 비프
-    await sleep(680);
+    Sfx.animalese(n, pitch[n], { dur: 0.4, bend: 0.22, gain: 1.0 }); Sfx.tick(); // 길게 늘여 강조
+    await sleep(950);
   }
   el.textContent = t("goStart"); el.classList.add("go");
   el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
@@ -645,13 +645,25 @@ async function speakAnswer(caption) {
   drawSpeech(""); speechSprite.visible = true;
   await sleep(300);                       // 카메라 들어오는 동안
   me.userData.talking = 1;                // 입놀림 시작
+  const chars = [...caption];
+  let lastVoiced = -1;                    // 마지막 '발음 가능' 글자 = 펀치라인
+  for (let i = chars.length - 1; i >= 0; i--) if (!/[.,!?…~\s]/.test(chars[i])) { lastVoiced = i; break; }
   let shown = "";
-  for (const ch of [...caption]) {
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    if (i === lastVoiced && chars.length > 2) await sleep(150);   // 펀치라인 직전 '한 박자'
     shown += ch; drawSpeech(shown);
-    if (ch !== " " && ch !== "\n") Sfx.animalese(ch);     // 진짜 animalese 샘플
-    await sleep(ch === " " ? 70 : /[.,!?…~]/.test(ch) ? 150 : 60 + Math.random() * 26);
+    if (/\s/.test(ch)) { await sleep(70); continue; }
+    if (/[.,!?…~]/.test(ch)) { await sleep(150); continue; }
+    if (i === lastVoiced) {               // 펀치라인 강조: 늘이며 피치 올림 + 말풍선 팝
+      Sfx.animalese(ch, 1.5, { dur: 0.46, bend: 0.42, gain: 1.0 });
+      const bs = speechSprite.scale.clone();
+      speechSprite.scale.multiplyScalar(1.13);
+      setTimeout(() => speechSprite.scale.copy(bs), 170);
+      await sleep(580);
+    } else { Sfx.animalese(ch); await sleep(60 + Math.random() * 26); }
   }
-  await sleep(440);                        // 말 끝나고 잠깐 정지
+  await sleep(360);                        // 말 끝나고 잠깐 정지
   me.userData.talking = 0;
   speechSprite.visible = false; meSprite.visible = true;
   cam.speak = 0;
