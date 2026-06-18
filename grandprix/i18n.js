@@ -207,6 +207,14 @@ const SHARE_EXTRA = {
 };
 for (const k in SHARE_EXTRA) if (DICT[k]) Object.assign(DICT[k], SHARE_EXTRA[k]);
 
+// 시작 카운트다운 문구 (3·2·1 다음)
+const GO_EXTRA = {
+  ko: "그랑프리 스타트!", en: "Grand Prix, START!", ja: "グランプリ スタート！", zh: "大奖赛 开始！", "zh-TW": "大賽 開始！",
+  es: "¡Grand Prix, YA!", pt: "Grand Prix, JÁ!", fr: "Grand Prix, GO !", de: "Grand Prix, LOS!", it: "Grand Prix, VIA!",
+  id: "Grand Prix, MULAI!", vi: "Grand Prix, BẮT ĐẦU!", th: "กรังด์ปรีซ์ เริ่ม!", hi: "ग्रां प्री, स्टार्ट!", fil: "Grand Prix, SIMULA!",
+};
+for (const k in GO_EXTRA) if (DICT[k]) DICT[k].goStart = GO_EXTRA[k];
+
 // ?lang= 오버라이드 → navigator.language → 지원 언어 코드
 export function pickLang() {
   try {

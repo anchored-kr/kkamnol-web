@@ -544,12 +544,32 @@ async function slotReveal(targetIndex) {
   revealing = false;
 }
 
+// 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (애니멀리즈 보이스 + UI 펑)
+async function countdown() {
+  const el = $("#countdown");
+  el.hidden = false; el.classList.remove("go");
+  const pitch = { "3": 1.15, "2": 1.4, "1": 1.7 };
+  for (const n of ["3", "2", "1"]) {
+    el.classList.remove("go"); el.textContent = n;
+    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    Sfx.animalese(n, pitch[n]); Sfx.tick();   // 캐릭터가 숫자를 말함 + 비프
+    await sleep(680);
+  }
+  el.textContent = t("goStart"); el.classList.add("go");
+  el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+  flashScreen(); Sfx.impact(); Sfx.cheer(1.2);  // 스타트 펑!
+  for (const ch of [...t("goStart")]) { if (ch !== " ") Sfx.animalese(ch, 1.55); await sleep(54); } // 신나게 말함
+  await sleep(720);
+  el.hidden = true; el.classList.remove("go", "pop");
+}
+
 // 첫 회: 데일리 사진 + 내 캐릭터로 줌인
 async function intro() {
   if (started) return; started = true;
   Sfx.resume();
   readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
+  await countdown();               // 3·2·1·그랑프리 스타트!
   startLiveRec();                  // 녹화 시작(슬롯·사진)
   await slotReveal(chosenIndex);
   cam.zoom = 1;

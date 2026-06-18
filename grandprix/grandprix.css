@@ -29,6 +29,13 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 @keyframes blink { 50% { opacity: 0.35; } }
 
 .bigboard { position: absolute; top: 13%; left: 50%; font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(48px, 14vw, 96px); color: #ffce2e; text-shadow: 0 6px 36px rgba(255,176,0,0.8), 0 0 4px #fff; white-space: nowrap; }
+
+/* 시작 카운트다운 3·2·1·그랑프리 스타트! */
+.countdown { position: fixed; inset: 0; z-index: 7; display: flex; align-items: center; justify-content: center; pointer-events: none; text-align: center; padding: 0 22px; font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; line-height: 1.04; letter-spacing: -0.03em; color: #ffce2e; text-shadow: 0 6px 44px rgba(255,176,0,0.85), 0 0 8px #fff; font-size: clamp(96px, 30vw, 240px); }
+.countdown[hidden] { display: none; }
+.countdown.go { color: #7af0a0; text-shadow: 0 6px 44px rgba(122,240,160,0.85), 0 0 8px #fff; font-size: clamp(40px, 12vw, 104px); }
+.countdown.pop { animation: cdPop 0.6s cubic-bezier(0.2, 1.5, 0.3, 1); }
+@keyframes cdPop { 0% { transform: scale(2.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 .bigboard.slam { animation: slam 0.5s cubic-bezier(0.2, 1.5, 0.3, 1); }
 @keyframes slam { 0% { transform: translateX(-50%) translateY(-60px) scale(2.6) rotate(-10deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateX(-50%) translateY(0) scale(1) rotate(-4deg); opacity: 1; } }
 
