@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { t, applyI18n, setLang } from "/grandprix/i18n.js";
+import { t, getLang, applyI18n, setLang } from "/grandprix/i18n.js";
+import { lbEnabled, fetchLeaderboard, submitEntry, likeEntry, reportEntry, uploadVideo, publicVideoUrl, cleanCaption } from "/grandprix/leaderboard.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
@@ -658,6 +659,12 @@ async function judgeReaction(caption) {
   $("#play").hidden = true;
   resumeLiveRec();                         // 채점 연출 녹화 재개(말하기·아이리스·깜놀)
 
+  // 리더보드 제출(실백엔드면) — 채점 연출 동안 백그라운드로. 영상은 공유 시 opt-in 업로드.
+  myEntryId = null; myOwnerToken = null;
+  const submitP = lbEnabled()
+    ? submitEntry({ photoId: (items[chosenIndex] && items[chosenIndex].id) || "x", nick: player.nick, flag: player.flag, nation: player.nation, caption, lang: getLang() })
+    : Promise.resolve(null);
+
   // (0) 내 캐릭터가 답을 말함 — 예능 게스트처럼
   await speakAnswer(caption);
 
@@ -690,7 +697,8 @@ async function judgeReaction(caption) {
   cam.score = 0;
   drawItemToScreen(chosenIndex);
   $("#myCaption").textContent = `“${caption}”`;
-  openLeaderboard(caption);
+  const ent = await submitP; if (ent) { myEntryId = ent.id; myOwnerToken = ent.owner_token; }
+  await openLeaderboard(caption);
   $("#result").hidden = false;
   busy = false;
 }
@@ -828,8 +836,17 @@ function discardLiveRec() {                   // 공유 안 하고 정리(다시
 }
 
 // 영상 공유 버튼
+// opt-in: 공유/저장할 때 내 영상을 리더보드에 올림(클릭 재생용). 실백엔드+내 제출 있을 때만.
+async function maybeUploadToLeaderboard(file) {
+  if (!lbEnabled() || !myEntryId || !myOwnerToken || !file) return;
+  if (maybeUploadToLeaderboard._done === myEntryId) return;  // 중복 방지
+  maybeUploadToLeaderboard._done = myEntryId;
+  const path = await uploadVideo(myEntryId, myOwnerToken, file);
+  if (path) { const me = lbData.find((a) => a.id === myEntryId); if (me) { me.video = path; renderLb(); } toast(t("postedToLb")); }
+}
 async function onShareBtn() {
   if (recording) return;
+  maybeUploadToLeaderboard(liveVideoFile || pendingShareFile);   // 공유 시 리더보드에도(opt-in)
   if (pendingShareFile) {                     // (폴백) 준비된 영상 이번 탭 제스처에 공유
     const file = pendingShareFile;
     try { await navigator.share(videoShareData(file)); resetShareBtn(); }
@@ -942,10 +959,24 @@ function seedFor(id) {
 }
 let lbData = [];
 let lbFilter = "all";
-function openLeaderboard(myCaption) {
+let lbUsingReal = false;
+let myEntryId = null, myOwnerToken = null;
+const likedSet = new Set((() => { try { return JSON.parse(localStorage.getItem("gp-liked") || "[]"); } catch (e) { return []; } })());
+const saveLiked = () => { try { localStorage.setItem("gp-liked", JSON.stringify([...likedSet])); } catch (e) {} };
+
+async function openLeaderboard(myCaption) {
   const id = (items[chosenIndex] && items[chosenIndex].id) || "x";
-  lbData = [...seedFor(id), { flag: player.flag, nick: player.nick, text: myCaption, likes: 0, liked: false, mine: true }];
   lbFilter = "all";
+  const rows = lbEnabled() ? await fetchLeaderboard(id) : null;
+  if (rows) {                                   // 실데이터(Supabase)
+    lbUsingReal = true;
+    lbData = rows.map((r) => ({ flag: r.flag, nick: r.nick, text: r.caption, likes: r.likes, liked: likedSet.has(r.id), id: r.id, video: r.video_path, mine: r.id === myEntryId }));
+  } else {                                       // 데모 시드 폴백
+    lbUsingReal = false;
+    lbData = seedFor(id);
+  }
+  if (!lbData.some((a) => a.mine))               // 내 답변 항상 표시
+    lbData.push({ flag: player.flag, nick: player.nick, text: myCaption, likes: 0, liked: false, mine: true, id: myEntryId });
   renderFilter();
   renderLb();
 }
@@ -958,21 +989,49 @@ function renderFilter() {
 }
 function renderLb() {
   const rows = lbData
-    .map((a) => ({ a, i: lbData.indexOf(a) }))
+    .map((a, i) => ({ a, i }))
     .filter(({ a }) => lbFilter === "all" || a.flag === lbFilter)
     .sort((x, y) => y.a.likes - x.a.likes);
   $("#lbList").innerHTML = rows.map(({ a, i }, r) => `
-    <li class="lb-row ${a.mine ? "mine" : ""}">
+    <li class="lb-row ${a.mine ? "mine" : ""} ${a.video ? "has-video" : ""}" data-i="${i}">
       <span class="rank">${r + 1}</span>
-      <div class="main"><div class="who">${a.flag} ${escapeHtml(a.nick)}${a.mine ? " · " + t("me") : ""}</div><div class="txt">${escapeHtml(a.text)}</div></div>
+      <div class="main"><div class="who">${a.flag} ${escapeHtml(a.nick)}${a.mine ? " · " + t("me") : ""}${a.video ? ' <span class="vbadge">▶</span>' : ""}</div><div class="txt">${escapeHtml(a.text)}</div></div>
       <button class="like" data-i="${i}">${a.liked ? "❤️" : "🤍"} ${a.likes}</button>
+      ${!a.mine && a.id ? `<button class="report" data-i="${i}" title="${escapeHtml(t("report"))}">⚐</button>` : ""}
     </li>`).join("");
   $("#lbList").querySelectorAll(".like").forEach((b) =>
-    b.addEventListener("click", () => {
-      const a = lbData[+b.dataset.i];
-      a.liked ? (a.likes--, (a.liked = false)) : (a.likes++, (a.liked = true)); // 토글
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const a = lbData[+b.dataset.i], on = !a.liked;
+      a.liked = on; a.likes += on ? 1 : -1;
+      if (a.id && lbUsingReal) { on ? likedSet.add(a.id) : likedSet.delete(a.id); saveLiked(); likeEntry(a.id, on); }
       renderLb();
     }));
+  $("#lbList").querySelectorAll(".report").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const a = lbData[+b.dataset.i];
+      if (a.id && confirm(t("reportConfirm"))) { reportEntry(a.id); b.textContent = "✓"; b.disabled = true; toast(t("reported")); }
+    }));
+  $("#lbList").querySelectorAll(".lb-row.has-video").forEach((li) =>
+    li.addEventListener("click", async () => {
+      const a = lbData[+li.dataset.i]; if (!a.video) return;
+      const url = await publicVideoUrl(a.video); if (url) openVideoModal(url, a);
+    }));
+}
+// 영상 모달
+function openVideoModal(url, a) {
+  const m = $("#videoModal"); if (!m) return;
+  $("#vmVideo").src = url;
+  $("#vmWho").textContent = `${a.flag} ${a.nick}`;
+  $("#vmCap").textContent = `“${a.text}”`;
+  m.hidden = false;
+  const v = $("#vmVideo"); v.currentTime = 0; v.play().catch(() => {});
+}
+function closeVideoModal() {
+  const m = $("#videoModal"); if (!m) return;
+  const v = $("#vmVideo"); v.pause(); v.removeAttribute("src"); v.load();
+  m.hidden = true;
 }
 
 /* ---- 닉네임 / 국적 ---- */
@@ -1033,8 +1092,10 @@ function readPlayer() {
 
 /* ---- 이벤트 ---- */
 $("#startBtn").addEventListener("click", intro);
-$("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; lastCaption = v; judgeReaction(v); });
+$("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; if (!cleanCaption(v)) { toast(t("badCaption")); return; } lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
 $("#share").addEventListener("click", onShareBtn);
 $("#shareLink").addEventListener("click", shareLink);
+$("#vmClose").addEventListener("click", closeVideoModal);
+$("#videoModal").addEventListener("click", (e) => { if (e.target.id === "videoModal") closeVideoModal(); });
 $("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });

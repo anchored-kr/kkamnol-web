@@ -95,6 +95,14 @@
           <button id="retry" class="btn btn--ghost" data-i18n="retry">다시 도전</button>
         </div>
       </section>
+
+      <div id="videoModal" class="vmodal" hidden>
+        <div class="vmodal-card">
+          <button id="vmClose" class="vmodal-close" aria-label="close">✕</button>
+          <video id="vmVideo" class="vmodal-video" playsinline controls></video>
+          <div class="vmodal-meta"><span id="vmWho" class="vmodal-who"></span><span id="vmCap" class="vmodal-cap"></span></div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/grandprix/grandprix.js"></script>

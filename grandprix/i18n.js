@@ -215,6 +215,13 @@ const GO_EXTRA = {
 };
 for (const k in GO_EXTRA) if (DICT[k]) DICT[k].goStart = GO_EXTRA[k];
 
+// 리더보드 문구 (ko/en, 그 외 언어는 영어 폴백)
+const LB_EXTRA = {
+  ko: { report: "신고", reportConfirm: "이 답변을 신고할까요?", reported: "신고했어요", postedToLb: "🏆 리더보드에 영상 올렸어요!", badCaption: "⚠️ 부적절한 표현은 쓸 수 없어요" },
+  en: { report: "Report", reportConfirm: "Report this answer?", reported: "Reported", postedToLb: "🏆 Posted to leaderboard!", badCaption: "⚠️ That wording isn't allowed" },
+};
+for (const k in LB_EXTRA) if (DICT[k]) Object.assign(DICT[k], LB_EXTRA[k]);
+
 // ?lang= 오버라이드 → navigator.language → 지원 언어 코드
 export function pickLang() {
   try {
