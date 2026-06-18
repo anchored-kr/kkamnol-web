@@ -13,8 +13,8 @@ const GRADIENTS = {
 
 const GAMES = [
   {
-    title: "깜놀 그랑프리",
-    en: "Kkamnol Grand Prix",
+    title: "제목학원 그랑프리",
+    en: "Caption Academy Grand Prix",
     emoji: "🏆",
     status: "live",
     url: "/grandprix",

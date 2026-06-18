@@ -394,6 +394,32 @@ const boomSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: boomTex, tra
 boomSprite.scale.set(6.2, 2.4, 1); boomSprite.position.set(0, 5.4, -7.6); boomSprite.visible = false;
 scene.add(boomSprite);
 
+/* ---- 시작 카운트다운: 카메라 부착 스프라이트(항상 중앙·녹화에 담김) ---- */
+const cdCanvas = document.createElement("canvas"); cdCanvas.width = 1024; cdCanvas.height = 600;
+const cdTex = new THREE.CanvasTexture(cdCanvas); cdTex.colorSpace = THREE.SRGBColorSpace;
+function drawCountdownTex(text, go) {
+  const x = cdCanvas.getContext("2d");
+  x.clearRect(0, 0, 1024, 600);
+  x.textAlign = "center"; x.textBaseline = "middle";
+  let fs = go ? 200 : 460;
+  x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`;
+  while (x.measureText(text).width > 960 && fs > 48) { fs -= 8; x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`; }
+  x.fillStyle = go ? "#7af0a0" : "#ffce2e";
+  x.shadowColor = go ? "rgba(122,240,160,0.95)" : "rgba(255,176,0,0.95)"; x.shadowBlur = 48;
+  x.fillText(text, 512, 308); x.fillText(text, 512, 308); // 두 번 = 글로우 강조
+  x.shadowBlur = 0;
+  cdTex.needsUpdate = true;
+}
+const cdSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: cdTex, transparent: true, depthTest: false, depthWrite: false }));
+cdSprite.position.set(0, 0, -3.4); cdSprite.visible = false; cdSprite.userData = { w: 3, h: 1.8, pop: 0 };
+camera.add(cdSprite); scene.add(camera); // 카메라를 씬에 넣어야 자식(스프라이트)이 렌더됨
+function sizeCdSprite() {
+  const d = 3.4, vh = 2 * d * Math.tan((camera.fov * Math.PI / 180) / 2), vw = vh * camera.aspect;
+  const w = Math.min(vw * 0.92, vh * 0.92 * (cdCanvas.width / cdCanvas.height));
+  cdSprite.userData.w = w; cdSprite.userData.h = w * (cdCanvas.height / cdCanvas.width);
+}
+function showCd(text, go) { drawCountdownTex(text, go); sizeCdSprite(); cdSprite.visible = true; cdSprite.userData.pop = go ? 0.5 : 0.62; }
+
 /* ---- 조명 ---- */
 scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.5));
 scene.add(new THREE.AmbientLight(0x223322, 0.5));
@@ -455,6 +481,11 @@ function animate() {
       if (p.scale.y !== 1) p.scale.set(1, 1, 1);
     }
   });
+  if (cdSprite.visible) {                              // 카운트다운 펑(pop) 후 안정
+    const k = 1 + cdSprite.userData.pop;
+    cdSprite.scale.set(cdSprite.userData.w * k, cdSprite.userData.h * k, 1);
+    if (cdSprite.userData.pop > 0.001) cdSprite.userData.pop *= 0.86; else cdSprite.userData.pop = 0;
+  }
   renderer.render(scene, camera);
 }
 animate();
@@ -462,6 +493,7 @@ animate();
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
+  sizeCdSprite();
 });
 
 /* ---- 효과 ---- */
@@ -577,23 +609,19 @@ async function speakWithStress(phrase, finalDur = 0.5) {
   }
 }
 
-// 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (애니멀리즈 보이스 + UI 펑)
+// 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (캔버스 스프라이트 → 녹화에 담김)
 async function countdown() {
-  const el = $("#countdown");
-  el.hidden = false; el.classList.remove("go");
   const pitch = { "3": 1.1, "2": 1.3, "1": 1.5 };
   for (const n of ["3", "2", "1"]) {
-    el.classList.remove("go"); el.textContent = n;
-    el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    showCd(n, false);
     Sfx.animalese(n, pitch[n], { dur: 0.4, bend: 0.22, gain: 1.0 }); Sfx.tick(); // 길게 늘여 강조
     await sleep(950);
   }
-  el.textContent = t("goStart"); el.classList.add("go");
-  el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+  showCd(t("goStart"), true);
   flashScreen(); Sfx.impact(); Sfx.cheer(1.3);  // 스타트 펑!
   await speakWithStress(t("goStart"), 0.55);     // 그랑프리~~ 스타트~~~! (강세)
   await sleep(260);
-  el.hidden = true; el.classList.remove("go", "pop");
+  cdSprite.visible = false;
 }
 
 // 첫 회: 데일리 사진 + 내 캐릭터로 줌인
@@ -602,8 +630,8 @@ async function intro() {
   Sfx.resume();
   readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
+  startLiveRec();                  // ★ 카운트다운부터 녹화 (영상에 3·2·1 포함)
   await countdown();               // 3·2·1·그랑프리 스타트!
-  startLiveRec();                  // 녹화 시작(슬롯·사진)
   await slotReveal(chosenIndex);
   cam.zoom = 1;
   await sleep(1500);
