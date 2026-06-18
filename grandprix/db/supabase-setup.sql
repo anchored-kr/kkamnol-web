@@ -95,3 +95,28 @@ do $$ begin
       for select to anon using (bucket_id = 'videos');
   exception when duplicate_object then null; end;
 end $$;
+
+-- ============================================================
+-- 6) 게임별 플레이 카운트 (랜딩페이지 표시용)
+-- ============================================================
+create table if not exists public.game_stats (
+  game_id text primary key,
+  plays   bigint not null default 0
+);
+
+-- 카운트 +1 (없으면 생성) → 새 값 반환
+create or replace function public.bump_play(g text) returns bigint
+language plpgsql security definer set search_path = public as $$
+declare v bigint;
+begin
+  insert into public.game_stats(game_id, plays) values (left(g,40), 1)
+  on conflict (game_id) do update set plays = game_stats.plays + 1
+  returning plays into v;
+  return v;
+end; $$;
+grant execute on function public.bump_play(text) to anon, authenticated;
+
+-- 공개 읽기 뷰
+create or replace view public.game_play_counts as
+  select game_id, plays from public.game_stats;
+grant select on public.game_play_counts to anon, authenticated;

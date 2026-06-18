@@ -13,6 +13,7 @@ const GRADIENTS = {
 
 const GAMES = [
   {
+    id: "grandprix",
     title: "제목학원 그랑프리",
     en: "Caption Academy Grand Prix",
     emoji: "🏆",
@@ -21,6 +22,7 @@ const GAMES = [
     color: "lavender",
   },
   {
+    id: "jaemok",
     title: "제목학원",
     en: "Caption Academy",
     emoji: "😆",
@@ -51,7 +53,7 @@ function cardHTML(g, rotation) {
       <span class="appcard__emoji" aria-hidden="true">${g.emoji || "😮"}</span>
     </div>
     <div class="appcard__label">${g.title}</div>
-    <div class="appcard__en">${g.en || ""}</div>`;
+    <div class="appcard__en">${g.en || ""}</div>${(isLive && g.id) ? `<div class="appcard__plays" data-game="${g.id}" hidden></div>` : ""}`;
 
   const style = `--r:${rotation}deg`;
   if (isLive) {
@@ -89,6 +91,25 @@ function renderCards() {
 }
 
 renderCards();
+
+/* ===== 게임별 총 플레이 카운트 (Supabase, 미설정 시 미표시) ===== */
+async function loadPlayCounts() {
+  try {
+    const cfg = await import("/grandprix/supabase-config.js");
+    if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) return;          // 미설정 → 표시 안 함
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+    const { data, error } = await sb.from("game_play_counts").select("*");
+    if (error || !data) return;
+    const map = Object.fromEntries(data.map((r) => [r.game_id, Number(r.plays)]));
+    document.querySelectorAll(".appcard__plays").forEach((el) => {
+      const n = map[el.dataset.game] || 0;
+      el.textContent = "🔥 " + n.toLocaleString() + "회 플레이";
+      el.hidden = false;
+    });
+  } catch (e) { /* 조용히 무시 */ }
+}
+loadPlayCounts();
 
 /* ===== 데스크톱: 폰 목업 안에서 게임 미리보기 / 모바일: 풀스크린 이동 ===== */
 function isDesktop() {

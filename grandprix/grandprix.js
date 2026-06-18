@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { t, getLang, applyI18n, setLang } from "/grandprix/i18n.js";
-import { lbEnabled, fetchLeaderboard, submitEntry, likeEntry, reportEntry, uploadVideo, publicVideoUrl, cleanCaption } from "/grandprix/leaderboard.js";
+import { lbEnabled, fetchLeaderboard, submitEntry, likeEntry, reportEntry, uploadVideo, publicVideoUrl, cleanCaption, bumpPlay } from "/grandprix/leaderboard.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const $ = (s) => document.querySelector(s);
@@ -595,6 +595,7 @@ async function countdown() {
 // 첫 회: 데일리 사진 + 내 캐릭터로 줌인
 async function intro() {
   if (started) return; started = true;
+  bumpPlay("grandprix");           // 플레이 카운트 +1
   Sfx.resume();
   readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
@@ -612,6 +613,7 @@ async function intro() {
 // 다시 도전: 랜덤 사진으로 슬롯부터 다시
 async function retry() {
   if (revealing || busy) return;
+  bumpPlay("grandprix");           // 재도전도 플레이 카운트 +1
   resetShareBtn();                 // 이전 라운드의 공유 대기 영상 정리
   discardLiveRec();                // 이전 라운드 녹화 폐기
   $("#result").hidden = true;

@@ -130,6 +130,8 @@ a { color: inherit; text-decoration: none; }
 .appcard__emoji { font-size: 66px; line-height: 1; }
 .appcard__label { font-weight: 700; font-size: 15px; color: var(--text); }
 .appcard__en { font-size: 12px; color: var(--muted); margin-top: -10px; }
+.appcard__plays { font-size: 11px; font-weight: 800; color: #e0245e; margin-top: 4px; letter-spacing: -0.01em; }
+.appcard__plays[hidden] { display: none; }
 
 .badge {
   position: absolute;

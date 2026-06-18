@@ -63,6 +63,12 @@ export async function uploadVideo(id, ownerToken, file) {
   } catch (e) { console.warn("[lb] upload", e); return null; }
 }
 
+// 게임 플레이 카운트 +1 (랜딩 표시용)
+export async function bumpPlay(gameId) {
+  try { const c = await sb(); if (!c) return; await c.rpc("bump_play", { g: gameId }); }
+  catch (e) { console.warn("[lb] bumpPlay", e); }
+}
+
 export async function publicVideoUrl(path) {
   try { const c = await sb(); if (!c || !path) return null; return c.storage.from("videos").getPublicUrl(path).data.publicUrl; }
   catch (e) { return null; }
