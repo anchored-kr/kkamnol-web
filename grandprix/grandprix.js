@@ -146,17 +146,17 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xffe6c2);
-scene.fog = new THREE.Fog(0xffe6c2, 24, 52);
+scene.background = new THREE.Color(0x12100b);
+scene.fog = new THREE.Fog(0x12100b, 24, 52);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
 
 scene.add(new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
-  new THREE.MeshStandardMaterial({ color: 0x7a6045, roughness: 0.9, metalness: 0.05 })
+  new THREE.MeshStandardMaterial({ color: 0x2a2318, roughness: 0.9, metalness: 0.05 })
 ).rotateX(-Math.PI / 2));
 // 뒷배경 — 밝은 크림 백드롭에 당근 패턴 (토끼 테마, SVG 자체 포함)
-const WALL_BG = "#ffe6c2";
+const WALL_BG = "#16130d";   // 어두운 백드롭 → 스크린에 집중
 const CARROT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="132" viewBox="0 0 100 132">'
   + '<g fill="#5cb24c"><path d="M50 50 Q46 26 50 8 Q54 26 50 50 Z"/>'
   + '<path d="M50 50 Q36 30 30 15 Q44 28 50 50 Z"/>'
@@ -175,7 +175,7 @@ const wallTex = (() => {
   img.onload = () => {
     // 5×5 지터드 그리드(25개): 위치·크기·회전 전부 랜덤 → 벽 가득. 경계 넘는 당근은 9방향 wrap으로 끊김 없이 타일링
     const G = 5, cell = T / G;
-    x.globalAlpha = 0.8;
+    x.globalAlpha = 0.15;   // 어두운 벽에서 은은하게(집중 방해 최소)
     for (let gy = 0; gy < G; gy++) for (let gx = 0; gx < G; gx++) {
       const cx = gx * cell + cell / 2 + (Math.random() - 0.5) * cell * 0.7;
       const cy = gy * cell + cell / 2 + (Math.random() - 0.5) * cell * 0.7;
@@ -293,7 +293,7 @@ const judges = [];
 const SKINS = [0xe7b699, 0xf1c9a5, 0xd9a07a, 0xeabd96, 0xc98b66];
 const SUITS = [0x191e22, 0x20242a, 0x15181c, 0x232026, 0x1a1d1f];
 function pm(geo, mat, x, y, z) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
-const PODIUM_H = 1.0;                                  // 실린더 단상 높이
+const PODIUM_H = 0.5;                                  // 실린더 단상 높이(낮춤 → 토끼가 스크린 덜 가림)
 function makeJudge(x, i) {
   const g = new THREE.Group();
   // 작은 실린더 단상 (토끼가 위에 섬)
@@ -417,8 +417,8 @@ function drawLabel(text) {
 }
 drawLabel(t("me"));
 const meSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthTest: false }));
-meSprite.scale.set(1.45, 0.48, 1);
-meSprite.position.set(0, 0.52, -3.0);   // 머리 위 → 실린더 단상 몸통 앞쪽으로
+meSprite.scale.set(1.3, 0.43, 1);
+meSprite.position.set(0, PODIUM_H * 0.54, -3.0);   // 실린더 단상 몸통 앞면(단상 높이에 맞춰)
 scene.add(meSprite);
 // 가운데 캐릭터: 핑크 보타이로 구분
 // (가운데 "나" 구분은 닉네임 라벨 + 스포트라이트로)
@@ -466,6 +466,11 @@ function drawVideoCaption(text) {
 const capSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: capTex, transparent: true, depthTest: false }));
 capSprite.scale.set(8.4, 1.8, 1); capSprite.position.set(0, 1.8, -7.8); capSprite.visible = false;
 scene.add(capSprite);
+
+// 입력(타이핑·고민) 단계: 캡션을 전광판(capSprite)에 실시간 미러링 → 라이브 녹화에 그대로 담김(자르지 않음)
+let typingPhase = false;
+function startTypingMirror() { typingPhase = true; drawVideoCaption("▌"); capSprite.visible = true; }
+function stopTypingMirror() { typingPhase = false; capSprite.visible = false; }
 
 // 영상 리플레이: 캡션을 '고민하며 한 글자씩' 타이핑 (입력 과정 = 고민의 흔적)
 async function typeCaption(text) {
@@ -757,7 +762,7 @@ async function intro() {
   await sleep(1500);
   $("#play").hidden = false;
   $(".title").hidden = false;      // 플레이(캡션 입력) 동안 헤더 표시
-  pauseLiveRec();                  // 입력(고민) 동안 일시정지
+  startTypingMirror();             // 입력(고민·타이핑) 시간 그대로 녹화 — 전광판에 실시간 미러링
   $("#caption").focus();
 }
 
@@ -777,7 +782,7 @@ async function retry() {
   await slotReveal(chosenIndex);
   $("#play").hidden = false;
   $(".title").hidden = false;      // 플레이 동안 헤더 표시
-  pauseLiveRec();                  // 입력 동안 일시정지
+  startTypingMirror();             // 입력(고민·타이핑) 시간 그대로 녹화 — 전광판에 실시간 미러링
   $("#caption").focus();
 }
 
@@ -811,7 +816,8 @@ async function judgeReaction(caption) {
   Sfx.resume();
   $("#play").hidden = true;
   $(".title").hidden = true;               // 채점 연출 중 헤더 숨김(심사중·깜놀 오버레이와 겹침 방지)
-  resumeLiveRec();                         // 채점 연출 녹화 재개(말하기·아이리스·깜놀)
+  stopTypingMirror();                      // 입력 단계 종료(전광판 미러 숨김)
+  resumeLiveRec();                         // (연속 녹화로 안 끊김 — 혹시 paused면 재개)
 
   // 리더보드 제출(실백엔드면) — 채점 연출 동안 백그라운드로. 영상은 공유 시 opt-in 업로드.
   myEntryId = null; myOwnerToken = null;
@@ -1246,6 +1252,7 @@ function readPlayer() {
 
 /* ---- 이벤트 ---- */
 $("#startBtn").addEventListener("click", intro);
+$("#caption").addEventListener("input", () => { if (typingPhase) drawVideoCaption(($("#caption").value || "") + "▌"); }); // 타이핑 실시간 미러링(녹화 담김)
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; if (!cleanCaption(v)) { toast(t("badCaption")); return; } lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
 $("#share").addEventListener("click", onShareBtn);
