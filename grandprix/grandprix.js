@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { t, getLang, applyI18n, setLang } from "/grandprix/i18n.js";
 import { lbEnabled, fetchLeaderboard, submitEntry, likeEntry, reportEntry, uploadVideo, publicVideoUrl, cleanCaption, bumpPlay } from "/grandprix/leaderboard.js";
 
@@ -256,30 +257,45 @@ function makeJudge(x, i) {
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
 
-/* ---- TripoSR GLB 캐릭터 로드 → 심사위원 5명 교체 ---- */
-const CHAR_STAND = -Math.PI / 2; // 세우기(모델 X)
-const CHAR_FACE = -Math.PI / 2;  // 정면(카메라) 보게 — 바깥 그룹 Y
-const CHAR_H = 1.55;                              // 캐릭터 키
-new GLTFLoader().load("/grandprix/models/character.glb", (gltf) => {
+/* ---- 토끼 GLB(Mixamo 리깅: Idle/Excited) 로드 → 심사위원 5명 ---- */
+const CHAR_STAND = 0;            // Mixamo 토끼는 이미 Y-up 서있음(TripoSR처럼 눕히지 않음)
+const CHAR_FACE = 0;             // 정면(카메라) 보게 — 바깥 그룹 Y (프리뷰 검증: 0=정면)
+const CHAR_H = 1.55;             // 캐릭터 키
+const judgeAnim = [];            // 심사위원별 { mixer, idle, excited, state }
+let charExcited = false;         // true면 Excited 재생(룰렛 도는 동안). animate()보다 먼저 선언
+new GLTFLoader().load("/grandprix/models/bunny.glb", (gltf) => {
   const src = gltf.scene;
   src.traverse((o) => { if (o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
   src.rotation.x = CHAR_STAND;
   src.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(src);
+  const box = new THREE.Box3().setFromObject(src);  // 스케일/중심용(높이·좌우). 발 높이는 아래서 클론별 보정
   const size = new THREE.Vector3(); box.getSize(size);
   const center = new THREE.Vector3(); box.getCenter(center);
   const s = CHAR_H / (size.y || 1);
+  const idleClip = THREE.AnimationClip.findByName(gltf.animations, "Idle") || gltf.animations[0];
+  const exciClip = THREE.AnimationClip.findByName(gltf.animations, "Excited") || gltf.animations[1] || gltf.animations[0];
   judges.forEach((j) => {
     const rig = new THREE.Group();
-    const m = src.clone(true);
+    const m = cloneSkinned(src);             // 스킨드 메시 전용 클론(스켈레톤 포함)
     m.scale.setScalar(s);
     m.position.set(-center.x * s, -box.min.y * s, -center.z * s); // 베이스 y=0
     rig.add(m);
-    rig.position.y = 1.18;      // 책상 위
+    rig.position.y = 1.18;      // 책상 위(초기값, 아래서 발 보정)
     rig.rotation.y = CHAR_FACE; // 정면 회전(월드 Y)
     j.userData.person.add(rig);
+    // 발이 단상 윗면(world y=1.15)에 닿게 보정: 씬 투입 후 스켈레톤 반영 bbox로 실제 발 높이 측정해 맞춤
+    rig.updateWorldMatrix(true, true);
+    let skin = null; m.traverse((o) => { if (o.isSkinnedMesh) skin = o; });
+    skin.computeBoundingBox();
+    const feetY = skin.boundingBox.clone().applyMatrix4(skin.matrixWorld).min.y;
+    rig.position.y += 1.15 - feetY;
+    const mixer = new THREE.AnimationMixer(m);
+    const idle = mixer.clipAction(idleClip);
+    const excited = mixer.clipAction(exciClip);
+    idle.play();                              // 기본 = Idle 루프
+    judgeAnim.push({ mixer, idle, excited, state: "idle" });
   });
-}, undefined, (e) => console.warn("character.glb load fail", e));
+}, undefined, (e) => console.warn("bunny.glb load fail", e));
 
 /* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 + 닉네임 라벨 ---- */
 const labelCanvas = document.createElement("canvas");
@@ -470,6 +486,17 @@ function animate() {
       if (p.scale.y !== 1) p.scale.set(1, 1, 1);
     }
   });
+  // 스켈레톤 애니: 룰렛 도는 동안(charExcited) Excited, 평소 Idle (크로스페이드)
+  for (const a of judgeAnim) {
+    a.mixer.update(0.016);
+    const want = charExcited ? "excited" : "idle";
+    if (a.state !== want) {
+      const to = want === "excited" ? a.excited : a.idle;
+      const from = want === "excited" ? a.idle : a.excited;
+      to.reset(); to.play(); to.crossFadeFrom(from, 0.3, false);
+      a.state = want;
+    }
+  }
   if (cdSprite.visible) {                              // 카운트다운 펑(pop) 후 안정
     const k = 1 + cdSprite.userData.pop;
     cdSprite.scale.set(cdSprite.userData.w * k, cdSprite.userData.h * k, 1);
@@ -553,6 +580,7 @@ let started = false;
 let revealing = false;
 async function slotReveal(targetIndex) {
   revealing = true;
+  charExcited = true;            // 룰렛 도는 동안 캐릭터 Excited
   $("#prompt").hidden = true;
   const n = items.length;
   let i = Math.floor(Date.now() / 997) % n;
@@ -575,6 +603,7 @@ async function slotReveal(targetIndex) {
   cam.shake = 1.2;
   await sleep(950);
   revealing = false;
+  charExcited = false;           // 룰렛 멈추면 다시 Idle
 }
 
 // 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (캔버스 스프라이트 → 녹화에 담김)
