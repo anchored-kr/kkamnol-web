@@ -16,7 +16,8 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 
 .topbar { display: flex; align-items: center; justify-content: center; padding: 16px 20px; }
 .framed .topbar { padding-top: 44px; } /* 폰 목업: 다이나믹 아일랜드 아래로 */
-.title { font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(26px, 7vw, 42px); letter-spacing: -0.02em; color: #ffce2e; text-shadow: 0 2px 16px rgba(255,176,0,0.5); text-align: center; }
+.title { position: absolute; top: 17%; left: 50%; transform: translateX(-50%); width: 100%; padding: 0 16px; text-align: center; font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(32px, 9.5vw, 56px); letter-spacing: -0.02em; color: #ffce2e; -webkit-text-stroke: 2.4px #6e3a08; paint-order: stroke fill; text-shadow: 0 3px 10px rgba(70,35,0,0.4); }
+.framed .title { top: 19%; }
 .topright { display: flex; align-items: center; gap: 12px; }
 .mute { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 999px; width: 38px; height: 34px; font-size: 16px; cursor: pointer; }
 

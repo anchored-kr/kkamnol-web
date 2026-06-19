@@ -146,33 +146,53 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0d0a);
-scene.fog = new THREE.Fog(0x0a0d0a, 18, 38);
+scene.background = new THREE.Color(0xffe6c2);
+scene.fog = new THREE.Fog(0xffe6c2, 24, 52);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
 
 scene.add(new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
-  new THREE.MeshStandardMaterial({ color: 0x0e130f, roughness: 0.85, metalness: 0.15 })
+  new THREE.MeshStandardMaterial({ color: 0x7a6045, roughness: 0.9, metalness: 0.05 })
 ).rotateX(-Math.PI / 2));
-// 뒷배경 패턴 (스튜디오 백드롭 — 은은한 도트 + 십자 스파클)
+// 뒷배경 — 밝은 크림 백드롭에 당근 패턴 (토끼 테마, SVG 자체 포함)
+const WALL_BG = "#ffe6c2";
+const CARROT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="132" viewBox="0 0 100 132">'
+  + '<g fill="#5cb24c"><path d="M50 50 Q46 26 50 8 Q54 26 50 50 Z"/>'
+  + '<path d="M50 50 Q36 30 30 15 Q44 28 50 50 Z"/>'
+  + '<path d="M50 50 Q64 30 70 15 Q56 28 50 50 Z"/></g>'
+  + '<path fill="#f5821f" d="M50 126 C43 98 35 78 38 58 Q40 48 50 48 Q60 48 62 58 C65 78 57 98 50 126 Z"/>'
+  + '<g stroke="#d96f15" stroke-width="2.6" stroke-linecap="round">'
+  + '<line x1="44" y1="72" x2="53" y2="68"/><line x1="43" y1="90" x2="54" y2="86"/><line x1="45" y1="106" x2="53" y2="103"/></g></svg>';
 const wallTex = (() => {
-  const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+  const T = 512;
+  const cv = document.createElement("canvas"); cv.width = cv.height = T;
   const x = cv.getContext("2d");
-  x.fillStyle = "#0b0f0c"; x.fillRect(0, 0, 256, 256);
-  for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) {
-    x.beginPath(); x.arc(gx * 64 + 32, gy * 64 + 32, 8, 0, Math.PI * 2);
-    x.fillStyle = (gx + gy) % 2 ? "#1d241a" : "#222a1d"; x.fill();
-  }
-  x.fillStyle = "#39361f";
-  [[16, 80], [112, 16], [176, 176], [240, 112], [80, 208]].forEach(([sx, sy]) => {
-    x.fillRect(sx - 1.5, sy - 6, 3, 12); x.fillRect(sx - 6, sy - 1.5, 12, 3);
-  });
+  x.fillStyle = WALL_BG; x.fillRect(0, 0, T, T);
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8, 4);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(10, 4.26);
+  const img = new Image();
+  img.onload = () => {
+    // 5×5 지터드 그리드(25개): 위치·크기·회전 전부 랜덤 → 벽 가득. 경계 넘는 당근은 9방향 wrap으로 끊김 없이 타일링
+    const G = 5, cell = T / G;
+    x.globalAlpha = 0.8;
+    for (let gy = 0; gy < G; gy++) for (let gx = 0; gx < G; gx++) {
+      const cx = gx * cell + cell / 2 + (Math.random() - 0.5) * cell * 0.7;
+      const cy = gy * cell + cell / 2 + (Math.random() - 0.5) * cell * 0.7;
+      const rot = Math.random() * Math.PI * 2;           // 완전 랜덤 방향
+      const w = 44 + Math.random() * 14, h = w * 1.32;   // 작게 + 크기 지터
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+        x.save(); x.translate(cx + ox * T, cy + oy * T); x.rotate(rot);
+        x.drawImage(img, -w / 2, -h / 2, w, h); x.restore();
+      }
+    }
+    x.globalAlpha = 1;
+    tex.needsUpdate = true;
+  };
+  img.src = "data:image/svg+xml;utf8," + encodeURIComponent(CARROT_SVG);
   return tex;
 })();
-const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 34), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 1 }));
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 34), new THREE.MeshBasicMaterial({ map: wallTex }));
 wall.position.set(0, 9, -12); scene.add(wall);
 
 /* ---- 전광판 ---- */
@@ -281,8 +301,11 @@ function makeJudge(x, i) {
   const barMat = new THREE.MeshStandardMaterial({ color: 0xffd000, emissive: 0xffae00, emissiveIntensity: 0.7 }); // 참조 유지(바 메쉬는 생략)
   const person = new THREE.Group(); // GLB 캐릭터가 로드되면 채워짐
   g.add(person);
+  const bunnyLight = new THREE.PointLight(0xfff1dc, 11, 8, 2); // 토끼별 전용 조명(앞위에서 밝게)
+  bunnyLight.position.set(0, 2.7, 1.7);
+  g.add(bunnyLight);
   g.position.set(x, 0, -3.7);
-  g.userData = { barMat, person, pulse: 0, talking: 0 };
+  g.userData = { barMat, person, pulse: 0, talking: 0, light: bunnyLight };
   judges.push(g); return g;
 }
 [-4.7, -2.35, 0, 2.35, 4.7].forEach((x, i) => scene.add(makeJudge(x, i)));
@@ -326,6 +349,54 @@ new GLTFLoader().load("/grandprix/models/bunny.glb", (gltf) => {
     judgeAnim.push({ mixer, idle, excited, state: "idle" });
   });
 }, undefined, (e) => console.warn("bunny.glb load fail", e));
+
+/* ---- 폭죽: 채소(당근/감자/옥수수)가 화면 아래에서 위로 튀어오름 (카메라 기준 2.5D) ---- */
+const veggieTemplates = [];   // 높이 정규화된 채소 메시 템플릿
+const activeVeggies = [];     // 활성 파티클
+["carrot", "potato", "corn"].forEach((name) => {
+  new GLTFLoader().load(`/grandprix/models/veg_${name}.glb`, (gltf) => {
+    const o = gltf.scene;
+    o.traverse((c) => {
+      if (c.isMesh && c.material) {
+        c.material.side = THREE.DoubleSide;
+        if (c.material.map) { c.material.emissiveMap = c.material.map; c.material.emissive = new THREE.Color(0xffffff); c.material.emissiveIntensity = 0.4; } // 어두운 씬에서도 밝게
+      }
+    });
+    const box = new THREE.Box3().setFromObject(o);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const ctr = new THREE.Vector3(); box.getCenter(ctr);
+    const sc = 0.7 / (size.y || 1);                 // 높이 0.7로 정규화
+    o.scale.setScalar(sc);
+    o.position.set(-ctr.x * sc, -ctr.y * sc, -ctr.z * sc); // 원점 중심
+    const wrap = new THREE.Group(); wrap.add(o);    // 회전용 래퍼
+    veggieTemplates.push(wrap);
+  }, undefined, (e) => console.warn(`veg_${name}.glb load fail`, e));
+});
+
+function burstVeggies(count = 26) {
+  if (!veggieTemplates.length) return;
+  const fovR = camera.fov * Math.PI / 180;
+  for (let i = 0; i < count; i++) {
+    const depth = 6 + Math.random() * 4;            // 카메라 앞 거리
+    const halfH = depth * Math.tan(fovR / 2);       // 그 깊이에서 화면 절반 높이
+    const halfW = halfH * camera.aspect;
+    const mesh = veggieTemplates[(Math.random() * veggieTemplates.length) | 0].clone(true);
+    mesh.scale.multiplyScalar(0.85 + Math.random() * 0.6);
+    scene.add(mesh);
+    activeVeggies.push({
+      mesh,
+      x: (Math.random() * 2 - 1) * halfW * 0.95,    // 좌우 퍼짐
+      y: -halfH * 1.2,                              // 화면 아래에서 시작
+      depth,
+      vx: (Math.random() - 0.5) * halfW * 1.1,
+      vy: Math.sqrt(2 * 15 * halfH * (1.1 + Math.random() * 1.4)), // 위로 튀어 상단 도달
+      rot: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
+      spin: new THREE.Vector3((Math.random() - 0.5) * 7, (Math.random() - 0.5) * 7, (Math.random() - 0.5) * 7),
+      life: 0,
+    });
+  }
+}
+window.__vtest = { burst: (n) => burstVeggies(n), step: (n = 1) => { for (let i = 0; i < n; i++) animate(); }, count: () => activeVeggies.length, ready: () => veggieTemplates.length }; // TEMP 검증훅
 
 /* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 + 닉네임 라벨 ---- */
 const labelCanvas = document.createElement("canvas");
@@ -439,10 +510,14 @@ function drawCountdownTex(text, go) {
   let fs = go ? 200 : 460;
   x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`;
   while (x.measureText(text).width > 960 && fs > 48) { fs -= 8; x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`; }
-  x.fillStyle = go ? "#7af0a0" : "#ffce2e";
+  x.lineJoin = "round"; x.lineWidth = fs * 0.12;
+  x.strokeStyle = go ? "#0e4f27" : "#5a2e06";          // 밝은 벽 대비용 어두운 외곽
   x.shadowColor = go ? "rgba(122,240,160,0.95)" : "rgba(255,176,0,0.95)"; x.shadowBlur = 48;
-  x.fillText(text, 512, 308); x.fillText(text, 512, 308); // 두 번 = 글로우 강조
+  x.strokeText(text, 512, 308);                        // 글로우 + 외곽
   x.shadowBlur = 0;
+  x.strokeText(text, 512, 308);                        // 외곽선 또렷이
+  x.fillStyle = go ? "#7af0a0" : "#ffce2e";
+  x.fillText(text, 512, 308); x.fillText(text, 512, 308); // 두 번 = 채움 강조
   cdTex.needsUpdate = true;
 }
 const cdSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: cdTex, transparent: true, depthTest: false, depthWrite: false }));
@@ -456,8 +531,8 @@ function sizeCdSprite() {
 function showCd(text, go) { drawCountdownTex(text, go); sizeCdSprite(); cdSprite.visible = true; cdSprite.userData.pop = go ? 0.5 : 0.62; }
 
 /* ---- 조명 ---- */
-scene.add(new THREE.HemisphereLight(0x6f8fb0, 0x0a0a0a, 0.5));
-scene.add(new THREE.AmbientLight(0x223322, 0.5));
+scene.add(new THREE.HemisphereLight(0xbcd0e6, 0x33302a, 0.85));
+scene.add(new THREE.AmbientLight(0x6a665a, 1.0));
 const key = new THREE.SpotLight(0xfff2cc, 60, 34, 0.62, 0.45, 1.2);
 key.position.set(0, 12, 8); key.target.position.set(0, 1, -2); scene.add(key, key.target);
 const rim = new THREE.PointLight(0x66ccff, 12, 24, 2); rim.position.set(-7, 5, 2); scene.add(rim);
@@ -531,6 +606,26 @@ function animate() {
     const k = 1 + cdSprite.userData.pop;
     cdSprite.scale.set(cdSprite.userData.w * k, cdSprite.userData.h * k, 1);
     if (cdSprite.userData.pop > 0.001) cdSprite.userData.pop *= 0.86; else cdSprite.userData.pop = 0;
+  }
+  // 채소 폭죽 업데이트 (카메라 기준 2.5D → 월드 배치)
+  if (activeVeggies.length) {
+    const e = camera.matrixWorld.elements;
+    const rx = e[0], ry = e[1], rz = e[2];      // 카메라 right
+    const ux = e[4], uy = e[5], uz = e[6];      // 카메라 up
+    const fx = -e[8], fy = -e[9], fz = -e[10];  // 카메라 forward
+    const dt = 0.016, G = -15, cp = camera.position;
+    for (let i = activeVeggies.length - 1; i >= 0; i--) {
+      const v = activeVeggies[i];
+      v.vy += G * dt; v.y += v.vy * dt; v.x += v.vx * dt; v.life += dt;
+      v.rot.x += v.spin.x * dt; v.rot.y += v.spin.y * dt; v.rot.z += v.spin.z * dt;
+      v.mesh.position.set(
+        cp.x + rx * v.x + ux * v.y + fx * v.depth,
+        cp.y + ry * v.x + uy * v.y + fy * v.depth,
+        cp.z + rz * v.x + uz * v.y + fz * v.depth
+      );
+      v.mesh.rotation.copy(v.rot);
+      if (v.life > 3.6 || v.y < -9) { scene.remove(v.mesh); activeVeggies.splice(i, 1); }
+    }
   }
   renderer.render(scene, camera);
 }
@@ -661,6 +756,7 @@ async function intro() {
   cam.zoom = 1;
   await sleep(1500);
   $("#play").hidden = false;
+  $(".title").hidden = false;      // 플레이(캡션 입력) 동안 헤더 표시
   pauseLiveRec();                  // 입력(고민) 동안 일시정지
   $("#caption").focus();
 }
@@ -680,6 +776,7 @@ async function retry() {
   startLiveRec();                  // 새 라운드 녹화 시작
   await slotReveal(chosenIndex);
   $("#play").hidden = false;
+  $(".title").hidden = false;      // 플레이 동안 헤더 표시
   pauseLiveRec();                  // 입력 동안 일시정지
   $("#caption").focus();
 }
@@ -713,6 +810,7 @@ async function judgeReaction(caption) {
   if (busy) return; busy = true;
   Sfx.resume();
   $("#play").hidden = true;
+  $(".title").hidden = true;               // 채점 연출 중 헤더 숨김(심사중·깜놀 오버레이와 겹침 방지)
   resumeLiveRec();                         // 채점 연출 녹화 재개(말하기·아이리스·깜놀)
 
   // 리더보드 제출(실백엔드면) — 채점 연출 동안 백그라운드로. 영상은 공유 시 opt-in 업로드.
@@ -741,7 +839,7 @@ async function judgeReaction(caption) {
 
   // (2) 점수 공개 — 빵! (IPPON식: 전광판이 빨강+깜놀!로 폭발)
   drawScoreReveal();
-  flashScreen(); burstConfetti(); framePulse = 3.0; cam.shake = 1.3;
+  flashScreen(); burstConfetti(); burstVeggies(); framePulse = 3.0; cam.shake = 1.3;
   Sfx.impact(); Sfx.cheer(1.6);
   for (let i = 0; i < judges.length; i++) { judges[i].userData.barMat.emissiveIntensity = 2.6; judges[i].userData.pulse = 1; }
   const bb = $("#bigboard");
