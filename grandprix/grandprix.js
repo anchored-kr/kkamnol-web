@@ -358,14 +358,13 @@ const activeVeggies = [];     // 활성 파티클
     const o = gltf.scene;
     o.traverse((c) => {
       if (c.isMesh && c.material) {
-        c.material.side = THREE.DoubleSide;
-        if (c.material.map) { c.material.emissiveMap = c.material.map; c.material.emissive = new THREE.Color(0xffffff); c.material.emissiveIntensity = 0.4; } // 어두운 씬에서도 밝게
+        if (c.material.map) { c.material.emissiveMap = c.material.map; c.material.emissive = new THREE.Color(0xffffff); c.material.emissiveIntensity = 0.95; } // 어두운 씬에서도 텍스처 색 그대로 밝게
       }
     });
     const box = new THREE.Box3().setFromObject(o);
     const size = new THREE.Vector3(); box.getSize(size);
     const ctr = new THREE.Vector3(); box.getCenter(ctr);
-    const sc = 0.7 / (size.y || 1);                 // 높이 0.7로 정규화
+    const sc = 0.42 / (size.y || 1);                // 높이 정규화(작게)
     o.scale.setScalar(sc);
     o.position.set(-ctr.x * sc, -ctr.y * sc, -ctr.z * sc); // 원점 중심
     const wrap = new THREE.Group(); wrap.add(o);    // 회전용 래퍼
@@ -377,7 +376,7 @@ function burstVeggies(count = 26) {
   if (!veggieTemplates.length) return;
   const fovR = camera.fov * Math.PI / 180;
   for (let i = 0; i < count; i++) {
-    const depth = 6 + Math.random() * 4;            // 카메라 앞 거리
+    const depth = 7 + Math.random() * 6;            // 카메라 앞 거리(멀수록 작게 보임)
     const halfH = depth * Math.tan(fovR / 2);       // 그 깊이에서 화면 절반 높이
     const halfW = halfH * camera.aspect;
     const mesh = veggieTemplates[(Math.random() * veggieTemplates.length) | 0].clone(true);
@@ -396,7 +395,6 @@ function burstVeggies(count = 26) {
     });
   }
 }
-window.__vtest = { burst: (n) => burstVeggies(n), step: (n = 1) => { for (let i = 0; i < n; i++) animate(); }, count: () => activeVeggies.length, ready: () => veggieTemplates.length }; // TEMP 검증훅
 
 /* ---- 내 캐릭터 = 가운데(인덱스 2) 하이라이트 + 닉네임 라벨 ---- */
 const labelCanvas = document.createElement("canvas");
@@ -417,8 +415,8 @@ function drawLabel(text) {
 }
 drawLabel(t("me"));
 const meSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true, depthTest: false }));
-meSprite.scale.set(1.9, 0.63, 1);
-meSprite.position.set(0, 3.05, -3.5);
+meSprite.scale.set(1.45, 0.48, 1);
+meSprite.position.set(0, 0.52, -3.0);   // 머리 위 → 실린더 단상 몸통 앞쪽으로
 scene.add(meSprite);
 // 가운데 캐릭터: 핑크 보타이로 구분
 // (가운데 "나" 구분은 닉네임 라벨 + 스포트라이트로)
