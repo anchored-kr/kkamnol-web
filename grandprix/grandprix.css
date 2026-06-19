@@ -14,11 +14,9 @@ body { font-family: "Noto Sans KR", system-ui, sans-serif; color: #fff; }
 .hud { position: fixed; inset: 0; pointer-events: none; display: flex; flex-direction: column; z-index: 4; }
 .hud a, .hud button, .hud input, .hud select { pointer-events: auto; }
 
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+.topbar { display: flex; align-items: center; justify-content: center; padding: 16px 20px; }
 .framed .topbar { padding-top: 44px; } /* 폰 목업: 다이나믹 아일랜드 아래로 */
-.exit { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; font-size: 14px; }
-.exit:hover { color: #fff; }
-.title { font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(18px, 4vw, 26px); letter-spacing: -0.02em; color: #ffce2e; text-shadow: 0 2px 16px rgba(255,176,0,0.5); }
+.title { font-family: "Inter", "Noto Sans KR", sans-serif; font-style: italic; font-weight: 900; font-size: clamp(26px, 7vw, 42px); letter-spacing: -0.02em; color: #ffce2e; text-shadow: 0 2px 16px rgba(255,176,0,0.5); text-align: center; }
 .topright { display: flex; align-items: center; gap: 12px; }
 .mute { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 999px; width: 38px; height: 34px; font-size: 16px; cursor: pointer; }
 

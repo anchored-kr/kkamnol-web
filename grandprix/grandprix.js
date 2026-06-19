@@ -51,6 +51,17 @@ const Sfx = (() => {
     tick() { if (!muted) tone("triangle", 900, ensure().currentTime, 0.08, 0.12); },        // 슬롯 띵
     click() { if (!muted) tone("square", 440, ensure().currentTime, 0.08, 0.09); },          // 레버
     type() { if (!muted) tone("square", 1450 + Math.random() * 480, ensure().currentTime, 0.03, 0.045); }, // 키 입력음(소프트)
+    // 카운트다운 비프 (깔끔한 전자음, 플랫 서스테인)
+    beep(freq = 660, dur = 0.2, peak = 0.16) {
+      if (muted) return; const c = ensure(), t = c.currentTime;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = "square"; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + 0.01);
+      g.gain.setValueAtTime(peak, t + Math.max(0.02, dur - 0.04));
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.02);
+    },
     // 애니멀리즈: 글자 1개당 짧은 지저귐(동물의 숲 말투). 캐릭터가 말하는 소리.
     blip(ch, pitch = 1) {
       if (muted) return;
@@ -144,7 +155,24 @@ scene.add(new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
   new THREE.MeshStandardMaterial({ color: 0x0e130f, roughness: 0.85, metalness: 0.15 })
 ).rotateX(-Math.PI / 2));
-const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 34), new THREE.MeshStandardMaterial({ color: 0x0b0f0c, roughness: 1 }));
+// 뒷배경 패턴 (스튜디오 백드롭 — 은은한 도트 + 십자 스파클)
+const wallTex = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+  const x = cv.getContext("2d");
+  x.fillStyle = "#0b0f0c"; x.fillRect(0, 0, 256, 256);
+  for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) {
+    x.beginPath(); x.arc(gx * 64 + 32, gy * 64 + 32, 8, 0, Math.PI * 2);
+    x.fillStyle = (gx + gy) % 2 ? "#1d241a" : "#222a1d"; x.fill();
+  }
+  x.fillStyle = "#39361f";
+  [[16, 80], [112, 16], [176, 176], [240, 112], [80, 208]].forEach(([sx, sy]) => {
+    x.fillRect(sx - 1.5, sy - 6, 3, 12); x.fillRect(sx - 6, sy - 1.5, 12, 3);
+  });
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(8, 4);
+  return tex;
+})();
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 34), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 1 }));
 wall.position.set(0, 9, -12); scene.add(wall);
 
 /* ---- 전광판 ---- */
@@ -236,6 +264,7 @@ const frameGeo = new THREE.ExtrudeGeometry(ring, { depth: 0.5, bevelEnabled: tru
 const frameMat = new THREE.MeshStandardMaterial({ color: 0xffc21e, emissive: 0xffae00, emissiveIntensity: 0.9, metalness: 0.7, roughness: 0.28 });
 const frame = new THREE.Mesh(frameGeo, frameMat);
 frame.position.set(0, 4.4, -8.4); frame.scale.set(1.55, 1.08, 1); scene.add(frame);
+frame.visible = false; // 스크린 주변 금색 프레임 숨김
 const frameLight = new THREE.PointLight(0xffb300, 40, 26, 2);
 frameLight.position.set(0, 4.4, -6.4); scene.add(frameLight);
 
@@ -244,11 +273,12 @@ const judges = [];
 const SKINS = [0xe7b699, 0xf1c9a5, 0xd9a07a, 0xeabd96, 0xc98b66];
 const SUITS = [0x191e22, 0x20242a, 0x15181c, 0x232026, 0x1a1d1f];
 function pm(geo, mat, x, y, z) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
+const PODIUM_H = 1.0;                                  // 실린더 단상 높이
 function makeJudge(x, i) {
   const g = new THREE.Group();
-  g.add(pm(new THREE.BoxGeometry(1.95, 1.15, 0.75), new THREE.MeshStandardMaterial({ color: 0x10140f, roughness: 0.8, metalness: 0.2 }), 0, 0.575, 0));
-  const barMat = new THREE.MeshStandardMaterial({ color: 0xffd000, emissive: 0xffae00, emissiveIntensity: 0.7 });
-  for (let k = 0; k < 7; k++) g.add(pm(new THREE.BoxGeometry(0.15, 0.55, 0.07), barMat, -0.62 + k * 0.205, 0.6, 0.39));
+  // 작은 실린더 단상 (토끼가 위에 섬)
+  g.add(pm(new THREE.CylinderGeometry(0.6, 0.68, PODIUM_H, 28), new THREE.MeshStandardMaterial({ color: 0x26222c, roughness: 0.7, metalness: 0.15 }), 0, PODIUM_H / 2, 0));
+  const barMat = new THREE.MeshStandardMaterial({ color: 0xffd000, emissive: 0xffae00, emissiveIntensity: 0.7 }); // 참조 유지(바 메쉬는 생략)
   const person = new THREE.Group(); // GLB 캐릭터가 로드되면 채워짐
   g.add(person);
   g.position.set(x, 0, -3.7);
@@ -280,15 +310,15 @@ new GLTFLoader().load("/grandprix/models/bunny.glb", (gltf) => {
     m.scale.setScalar(s);
     m.position.set(-center.x * s, -box.min.y * s, -center.z * s); // 베이스 y=0
     rig.add(m);
-    rig.position.y = 1.18;      // 책상 위(초기값, 아래서 발 보정)
+    rig.position.y = PODIUM_H;  // 실린더 단상 위(초기값, 아래서 발 보정)
     rig.rotation.y = CHAR_FACE; // 정면 회전(월드 Y)
     j.userData.person.add(rig);
-    // 발이 단상 윗면(world y=1.15)에 닿게 보정: 씬 투입 후 스켈레톤 반영 bbox로 실제 발 높이 측정해 맞춤
+    // 발이 실린더 윗면(world y=PODIUM_H)에 닿게 보정: 스켈레톤 반영 bbox로 실제 발 높이 측정해 맞춤
     rig.updateWorldMatrix(true, true);
     let skin = null; m.traverse((o) => { if (o.isSkinnedMesh) skin = o; });
     skin.computeBoundingBox();
     const feetY = skin.boundingBox.clone().applyMatrix4(skin.matrixWorld).min.y;
-    rig.position.y += 1.15 - feetY;
+    rig.position.y += PODIUM_H - feetY;
     const mixer = new THREE.AnimationMixer(m);
     const idle = mixer.clipAction(idleClip);
     const excited = mixer.clipAction(exciClip);
@@ -581,7 +611,6 @@ let revealing = false;
 async function slotReveal(targetIndex) {
   revealing = true;
   charExcited = true;            // 룰렛 도는 동안 캐릭터 Excited
-  $("#prompt").hidden = true;
   const n = items.length;
   let i = Math.floor(Date.now() / 997) % n;
   const ticks = 24;
@@ -608,15 +637,13 @@ async function slotReveal(targetIndex) {
 
 // 시작 카운트다운: 3 · 2 · 1 · 그랑프리 스타트! (캔버스 스프라이트 → 녹화에 담김)
 async function countdown() {
-  const pitch = { "3": 1.15, "2": 1.4, "1": 1.7 };
   for (const n of ["3", "2", "1"]) {
     showCd(n, false);
-    Sfx.animalese(n, pitch[n]); Sfx.tick();
+    Sfx.beep(640, 0.2, 0.16);                     // 카운트 비프
     await sleep(680);
   }
   showCd(t("goStart"), true);
-  flashScreen(); Sfx.impact(); Sfx.cheer(1.2);  // 스타트 펑!
-  for (const ch of [...t("goStart")]) { if (ch !== " ") Sfx.animalese(ch, 1.55); await sleep(54); }
+  flashScreen(); Sfx.beep(1100, 0.6, 0.2); Sfx.cheer(1.2); // 스타트: 길고 높은 비프
   await sleep(720);
   cdSprite.visible = false;
 }
@@ -633,7 +660,6 @@ async function intro() {
   await slotReveal(chosenIndex);
   cam.zoom = 1;
   await sleep(1500);
-  $("#prompt").hidden = false;
   $("#play").hidden = false;
   pauseLiveRec();                  // 입력(고민) 동안 일시정지
   $("#caption").focus();
@@ -653,7 +679,6 @@ async function retry() {
   item = items[chosenIndex];
   startLiveRec();                  // 새 라운드 녹화 시작
   await slotReveal(chosenIndex);
-  $("#prompt").hidden = false;
   $("#play").hidden = false;
   pauseLiveRec();                  // 입력 동안 일시정지
   $("#caption").focus();
@@ -1129,4 +1154,3 @@ $("#share").addEventListener("click", onShareBtn);
 $("#shareLink").addEventListener("click", shareLink);
 $("#vmClose").addEventListener("click", closeVideoModal);
 $("#videoModal").addEventListener("click", (e) => { if (e.target.id === "videoModal") closeVideoModal(); });
-$("#mute").addEventListener("click", (e) => { e.currentTarget.textContent = Sfx.toggle() ? "🔇" : "🔊"; });

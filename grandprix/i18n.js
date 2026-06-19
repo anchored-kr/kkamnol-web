@@ -222,6 +222,14 @@ const LB_EXTRA = {
 };
 for (const k in LB_EXTRA) if (DICT[k]) Object.assign(DICT[k], LB_EXTRA[k]);
 
+// 상단 헤더 안내 문구
+const HEADER_EXTRA = {
+  ko: "사진보고 제목짓기", en: "Caption the photo", ja: "写真でタイトル", zh: "看图起标题", "zh-TW": "看圖起標題",
+  es: "Pon título a la foto", pt: "Dê um título à foto", fr: "Légende la photo", de: "Foto betiteln", it: "Titola la foto",
+  id: "Beri judul fotonya", vi: "Đặt tựa cho ảnh", th: "ตั้งชื่อให้รูป", hi: "फोटो को टाइटल दो", fil: "Pamagatan ang litrato",
+};
+for (const k in HEADER_EXTRA) if (DICT[k]) DICT[k].headerTitle = HEADER_EXTRA[k];
+
 // ?lang= 오버라이드 → navigator.language → 지원 언어 코드
 export function pickLang() {
   try {
