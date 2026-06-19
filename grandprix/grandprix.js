@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
+import { Reflector } from "three/addons/objects/Reflector.js";
 import { t, getLang, applyI18n, setLang } from "/grandprix/i18n.js";
 import { lbEnabled, fetchLeaderboard, submitEntry, likeEntry, reportEntry, uploadVideo, publicVideoUrl, cleanCaption, bumpPlay } from "/grandprix/leaderboard.js";
 
@@ -151,10 +152,21 @@ scene.fog = new THREE.Fog(0x12100b, 24, 52);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
 
-scene.add(new THREE.Mesh(
-  new THREE.PlaneGeometry(80, 80),
-  new THREE.MeshStandardMaterial({ color: 0x2a2318, roughness: 0.9, metalness: 0.05 })
-).rotateX(-Math.PI / 2));
+// 공연장 유광(반사) 검정 바닥 — Reflector 평면 미러. 바닥이 토끼·전광판을 비춤
+camera.layers.enable(1);   // 메인 카메라는 레이어1(UI 스프라이트)도 렌더 / 반사 가상카메라는 레이어0만 → UI 텍스트는 바닥에 안 비침
+const _dpr = Math.min(window.devicePixelRatio || 1, 2);
+const stageFloor = new Reflector(new THREE.PlaneGeometry(80, 80), {
+  clipBias: 0.004,
+  textureWidth: Math.max(640, Math.floor(window.innerWidth * _dpr)),
+  textureHeight: Math.max(640, Math.floor(window.innerHeight * _dpr)),
+  color: 0x3a3a3a,         // 어두운 틴트 → 검정 유광 무대 바닥
+});
+stageFloor.rotateX(-Math.PI / 2);
+scene.add(stageFloor);
+// 반사 강도 낮춤 → 거울이 아닌 "검정 유광" 느낌(반투명 검정 오버레이, 레이어1이라 반사엔 안 잡힘)
+const floorDim = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false }));
+floorDim.rotation.x = -Math.PI / 2; floorDim.position.y = 0.012; floorDim.layers.set(1);
+scene.add(floorDim);
 // 뒷배경 — 밝은 크림 백드롭에 당근 패턴 (토끼 테마, SVG 자체 포함)
 const WALL_BG = "#16130d";   // 어두운 백드롭 → 스크린에 집중
 const CARROT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="132" viewBox="0 0 100 132">'
@@ -294,6 +306,24 @@ const SKINS = [0xe7b699, 0xf1c9a5, 0xd9a07a, 0xeabd96, 0xc98b66];
 const SUITS = [0x191e22, 0x20242a, 0x15181c, 0x232026, 0x1a1d1f];
 function pm(geo, mat, x, y, z) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); return m; }
 const PODIUM_H = 0.5;                                  // 실린더 단상 높이(낮춤 → 토끼가 스크린 덜 가림)
+// 단상 이름표(가운데=나는 meSprite, 나머지 4명은 채소 테마 출연진). 단상 앞면에 부착 → 녹화에도 담김
+const JUDGE_NAMES = { 0: "🥕 당근", 1: "🥔 감자", 3: "🌽 옥수수", 4: "🍠 고구마" };
+function makePlate(text) {
+  const c = document.createElement("canvas"); c.width = 420; c.height = 140;
+  const x = c.getContext("2d");
+  x.font = "800 50px 'Noto Sans KR','Apple Color Emoji',sans-serif";
+  const tw = x.measureText(text).width;
+  const w = Math.min(c.width - 14, tw + 56), h = 92, ox = (c.width - w) / 2, oy = (c.height - h) / 2, r = 30;
+  x.beginPath(); x.moveTo(ox + r, oy); x.arcTo(ox + w, oy, ox + w, oy + h, r); x.arcTo(ox + w, oy + h, ox, oy + h, r); x.arcTo(ox, oy + h, ox, oy, r); x.arcTo(ox, oy, ox + w, oy, r); x.closePath();
+  x.fillStyle = "rgba(22,26,36,0.92)"; x.fill();
+  x.lineWidth = 3; x.strokeStyle = "rgba(255,255,255,0.30)"; x.stroke();
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText(text, c.width / 2, oy + h / 2 + 2);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  sp.scale.set(1.3, 0.43, 1); sp.layers.set(1);        // 유광 바닥 반사 제외
+  return sp;
+}
 function makeJudge(x, i) {
   const g = new THREE.Group();
   // 작은 실린더 단상 (토끼가 위에 섬)
@@ -304,6 +334,11 @@ function makeJudge(x, i) {
   const bunnyLight = new THREE.PointLight(0xfff1dc, 11, 8, 2); // 토끼별 전용 조명(앞위에서 밝게)
   bunnyLight.position.set(0, 2.7, 1.7);
   g.add(bunnyLight);
+  if (i !== 2) {                                       // 가운데(나)는 meSprite가 담당 / 나머지 4명은 단상 이름표
+    const plate = makePlate(JUDGE_NAMES[i] || "🐰");
+    plate.position.set(0, PODIUM_H * 0.54, 0.7);       // 단상 앞면(meSprite와 동일 높이·평면)
+    g.add(plate);
+  }
   g.position.set(x, 0, -3.7);
   g.userData = { barMat, person, pulse: 0, talking: 0, light: bunnyLight };
   judges.push(g); return g;
@@ -318,7 +353,7 @@ const judgeAnim = [];            // 심사위원별 { mixer, idle, excited, stat
 let charExcited = false;         // true면 Excited 재생(룰렛 도는 동안). animate()보다 먼저 선언
 new GLTFLoader().load("/grandprix/models/bunny.glb", (gltf) => {
   const src = gltf.scene;
-  src.traverse((o) => { if (o.isMesh && o.material) o.material.side = THREE.DoubleSide; });
+  src.traverse((o) => { if (o.isMesh && o.material) { o.material.side = THREE.DoubleSide; o.material.transparent = false; o.material.depthWrite = true; } }); // 불투명·깊이쓰기 → 유광 바닥/딤이 토끼를 덮지 않게
   src.rotation.x = CHAR_STAND;
   src.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(src);  // 스케일/중심용(높이·좌우). 발 높이는 아래서 클론별 보정
@@ -535,12 +570,52 @@ function sizeCdSprite() {
 }
 function showCd(text, go) { drawCountdownTex(text, go); sizeCdSprite(); cdSprite.visible = true; cdSprite.userData.pop = go ? 0.5 : 0.62; }
 
+/* ---- 상단 헤더 "사진보고 제목짓기"를 캔버스 배너로(카메라 부착 → 녹화에 담김) ---- */
+const titleCanvas = document.createElement("canvas"); titleCanvas.width = 1024; titleCanvas.height = 200;
+const titleTex = new THREE.CanvasTexture(titleCanvas); titleTex.colorSpace = THREE.SRGBColorSpace;
+function drawTitleTex(text) {
+  const x = titleCanvas.getContext("2d");
+  x.clearRect(0, 0, 1024, 200);
+  x.textAlign = "center"; x.textBaseline = "middle";
+  let fs = 128;
+  x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`;
+  while (x.measureText(text).width > 980 && fs > 40) { fs -= 6; x.font = `900 italic ${fs}px "Inter","Noto Sans KR",sans-serif`; }
+  x.lineJoin = "round"; x.lineWidth = fs * 0.14;
+  x.strokeStyle = "#6e3a08";                              // DOM 헤더와 동일한 갈색 외곽
+  x.shadowColor = "rgba(255,176,0,0.5)"; x.shadowBlur = 26;
+  x.strokeText(text, 512, 104);
+  x.shadowBlur = 0; x.strokeText(text, 512, 104);
+  x.fillStyle = "#ffce2e";
+  x.fillText(text, 512, 104);
+  titleTex.needsUpdate = true;
+}
+const titleSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: titleTex, transparent: true, depthTest: false, depthWrite: false }));
+titleSprite.position.set(0, 0.95, -3.4); titleSprite.visible = false;
+camera.add(titleSprite);
+
+// UI/연출 스프라이트는 레이어1로 → 유광 바닥 반사에서 제외(텍스트가 바닥에 안 비치게)
+[meSprite, speechSprite, capSprite, boomSprite, cdSprite, titleSprite].forEach((s) => s.layers.set(1));
+function sizeTitleSprite() {
+  const d = 3.4, vh = 2 * d * Math.tan((camera.fov * Math.PI / 180) / 2), vw = vh * camera.aspect;
+  const w = Math.min(vw * 0.92, vh * 1.4 * (titleCanvas.width / titleCanvas.height));
+  titleSprite.scale.set(w, w * (titleCanvas.height / titleCanvas.width), 1);
+  titleSprite.position.y = vh / 2 - vh * 0.18;            // 화면 상단 ~18%
+}
+// 게임플레이(녹화) 중: DOM 헤더 숨기고 캔버스 배너로 대체(중복 방지). 시작화면/결과에선 배너 off.
+function showRecHeader() { drawTitleTex(t("headerTitle")); sizeTitleSprite(); titleSprite.visible = true; $(".title").hidden = true; }
+function hideRecHeader() { titleSprite.visible = false; }
+
 /* ---- 조명 ---- */
 scene.add(new THREE.HemisphereLight(0xbcd0e6, 0x33302a, 0.85));
 scene.add(new THREE.AmbientLight(0x6a665a, 1.0));
 const key = new THREE.SpotLight(0xfff2cc, 60, 34, 0.62, 0.45, 1.2);
 key.position.set(0, 12, 8); key.target.position.set(0, 1, -2); scene.add(key, key.target);
 const rim = new THREE.PointLight(0x66ccff, 12, 24, 2); rim.position.set(-7, 5, 2); scene.add(rim);
+// 무대 조명(약간): 좌우 컬러 스폿 — 토끼를 비추고 유광 바닥에 반사로 깔림(콘서트 무대 느낌)
+const stageL = new THREE.SpotLight(0xffd9a0, 34, 26, 0.6, 0.7, 1.3);
+stageL.position.set(-7, 9, 5); stageL.target.position.set(-3, 1, -3.4); scene.add(stageL, stageL.target);
+const stageR = new THREE.SpotLight(0x9fb6ff, 30, 26, 0.6, 0.7, 1.3);
+stageR.position.set(7, 9, 5); stageR.target.position.set(3, 1, -3.4); scene.add(stageR, stageR.target);
 
 /* ---- 카메라 컨트롤러 (establish → play) ---- */
 const cam = {
@@ -639,7 +714,8 @@ animate();
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
-  sizeCdSprite();
+  sizeCdSprite(); if (titleSprite.visible) sizeTitleSprite();
+  try { stageFloor.getRenderTarget().setSize(Math.max(640, Math.floor(window.innerWidth * _dpr)), Math.max(640, Math.floor(window.innerHeight * _dpr))); } catch (e) {}
 });
 
 /* ---- 효과 ---- */
@@ -755,13 +831,13 @@ async function intro() {
   Sfx.resume();
   readPlayer(); // 닉네임/국적 반영 + 라벨 갱신
   $("#startScreen").hidden = true;
+  showRecHeader();                 // 상단 헤더 배너 ON(카운트다운부터 녹화에 담김)
   startLiveRec();                  // ★ 카운트다운부터 녹화 (영상에 3·2·1 포함)
   await countdown();               // 3·2·1·그랑프리 스타트!
   await slotReveal(chosenIndex);
   cam.zoom = 1;
   await sleep(1500);
   $("#play").hidden = false;
-  $(".title").hidden = false;      // 플레이(캡션 입력) 동안 헤더 표시
   startTypingMirror();             // 입력(고민·타이핑) 시간 그대로 녹화 — 전광판에 실시간 미러링
   $("#caption").focus();
 }
@@ -778,10 +854,10 @@ async function retry() {
   judges.forEach((j) => { j.userData.barMat.emissiveIntensity = 0.7; });
   chosenIndex = pickRandomIndex(); // 랜덤(직전 사진 회피)
   item = items[chosenIndex];
+  showRecHeader();                 // 상단 헤더 배너 ON(슬롯·입력 녹화에 담김)
   startLiveRec();                  // 새 라운드 녹화 시작
   await slotReveal(chosenIndex);
   $("#play").hidden = false;
-  $(".title").hidden = false;      // 플레이 동안 헤더 표시
   startTypingMirror();             // 입력(고민·타이핑) 시간 그대로 녹화 — 전광판에 실시간 미러링
   $("#caption").focus();
 }
@@ -816,6 +892,7 @@ async function judgeReaction(caption) {
   Sfx.resume();
   $("#play").hidden = true;
   $(".title").hidden = true;               // 채점 연출 중 헤더 숨김(심사중·깜놀 오버레이와 겹침 방지)
+  hideRecHeader();                          // 헤더 배너도 숨김(깨끗한 점수 공개)
   stopTypingMirror();                      // 입력 단계 종료(전광판 미러 숨김)
   resumeLiveRec();                         // (연속 녹화로 안 끊김 — 혹시 paused면 재개)
 
