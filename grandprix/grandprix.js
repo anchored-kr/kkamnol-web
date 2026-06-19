@@ -227,10 +227,8 @@ function drawImageCover(img, zoom = 1) {
   sctx.fillStyle = "#000"; sctx.fillRect(0, 0, 1024, 600);
   sctx.drawImage(img, (1024 - w) / 2, (600 - h) / 2, w, h); screenTex.needsUpdate = true;
 }
-function drawPlaceholder() {
-  sctx.fillStyle = "#1a1407"; sctx.fillRect(0, 0, 1024, 600);
-  sctx.fillStyle = "#ffce2e"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
-  sctx.font = "800 230px 'Noto Sans KR',sans-serif"; sctx.fillText("?", 512, 310); screenTex.needsUpdate = true;
+function drawPlaceholder() {   // 시작 전: "?" 없이 검은 화면만
+  sctx.fillStyle = "#000"; sctx.fillRect(0, 0, 1024, 600); screenTex.needsUpdate = true;
 }
 function drawItemToScreen(i, zoom = 1) {
   const it = items[i], img = itemImgs[i];
@@ -503,9 +501,13 @@ capSprite.scale.set(8.4, 1.8, 1); capSprite.position.set(0, 1.8, -7.8); capSprit
 scene.add(capSprite);
 
 // 입력(타이핑·고민) 단계: 캡션을 전광판(capSprite)에 실시간 미러링 → 라이브 녹화에 그대로 담김(자르지 않음)
-let typingPhase = false;
-function startTypingMirror() { typingPhase = true; drawVideoCaption("▌"); capSprite.visible = true; }
-function stopTypingMirror() { typingPhase = false; capSprite.visible = false; }
+let typingPhase = false, typedYet = false, idleCapTimer = null;
+function startTypingMirror() {
+  typingPhase = true; typedYet = false; drawVideoCaption("▌"); capSprite.visible = true;
+  clearTimeout(idleCapTimer);
+  idleCapTimer = setTimeout(() => { if (typingPhase && !typedYet) pauseLiveRec(); }, 1500); // 타이핑 전 대기는 녹화에 최대 1.5초만
+}
+function stopTypingMirror() { typingPhase = false; clearTimeout(idleCapTimer); capSprite.visible = false; }
 
 // 영상 리플레이: 캡션을 '고민하며 한 글자씩' 타이핑 (입력 과정 = 고민의 흔적)
 async function typeCaption(text) {
@@ -1329,7 +1331,11 @@ function readPlayer() {
 
 /* ---- 이벤트 ---- */
 $("#startBtn").addEventListener("click", intro);
-$("#caption").addEventListener("input", () => { if (typingPhase) drawVideoCaption(($("#caption").value || "") + "▌"); }); // 타이핑 실시간 미러링(녹화 담김)
+$("#caption").addEventListener("input", () => {
+  if (!typingPhase) return;
+  drawVideoCaption(($("#caption").value || "") + "▌");                              // 타이핑 실시간 미러링(녹화 담김)
+  if (!typedYet) { typedYet = true; clearTimeout(idleCapTimer); resumeLiveRec(); }  // 첫 입력 → 대기 캡 해제·녹화 재개
+});
 $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#caption").value.trim(); if (!v) return; if (!cleanCaption(v)) { toast(t("badCaption")); return; } lastCaption = v; judgeReaction(v); });
 $("#retry").addEventListener("click", retry);
 $("#share").addEventListener("click", onShareBtn);
