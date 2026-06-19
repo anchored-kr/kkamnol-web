@@ -350,21 +350,23 @@ new GLTFLoader().load("/grandprix/models/bunny.glb", (gltf) => {
   });
 }, undefined, (e) => console.warn("bunny.glb load fail", e));
 
-/* ---- 폭죽: 채소(당근/감자/옥수수)가 화면 아래에서 위로 튀어오름 (카메라 기준 2.5D) ---- */
-const veggieTemplates = [];   // 높이 정규화된 채소 메시 템플릿
+/* ---- 폭죽: 당근이 화면 아래에서 위로 튀어오름 (카메라 기준 2.5D, 항상 앞에 렌더) ---- */
+const veggieTemplates = [];   // 높이 정규화된 당근 메시 템플릿
 const activeVeggies = [];     // 활성 파티클
-["carrot", "potato", "corn"].forEach((name) => {
+["carrot"].forEach((name) => {                       // 당근만
   new GLTFLoader().load(`/grandprix/models/veg_${name}.glb`, (gltf) => {
     const o = gltf.scene;
     o.traverse((c) => {
       if (c.isMesh && c.material) {
-        if (c.material.map) { c.material.emissiveMap = c.material.map; c.material.emissive = new THREE.Color(0xffffff); c.material.emissiveIntensity = 0.95; } // 어두운 씬에서도 텍스처 색 그대로 밝게
+        if (c.material.map) { c.material.emissiveMap = c.material.map; c.material.emissive = new THREE.Color(0xffffff); c.material.emissiveIntensity = 0.95; } // 어두운 씬에서도 밝게
+        c.material.depthTest = false; c.material.depthWrite = false; // 다른 오브젝트 뒤로 안 가고 항상 앞에
+        c.renderOrder = 999;                                        // 맨 마지막에 그려 위로 올림
       }
     });
     const box = new THREE.Box3().setFromObject(o);
     const size = new THREE.Vector3(); box.getSize(size);
     const ctr = new THREE.Vector3(); box.getCenter(ctr);
-    const sc = 0.42 / (size.y || 1);                // 높이 정규화(작게)
+    const sc = 0.28 / (size.y || 1);                // 높이 정규화(더 작게)
     o.scale.setScalar(sc);
     o.position.set(-ctr.x * sc, -ctr.y * sc, -ctr.z * sc); // 원점 중심
     const wrap = new THREE.Group(); wrap.add(o);    // 회전용 래퍼
@@ -372,7 +374,7 @@ const activeVeggies = [];     // 활성 파티클
   }, undefined, (e) => console.warn(`veg_${name}.glb load fail`, e));
 });
 
-function burstVeggies(count = 26) {
+function burstVeggies(count = 44) {
   if (!veggieTemplates.length) return;
   const fovR = camera.fov * Math.PI / 180;
   for (let i = 0; i < count; i++) {
