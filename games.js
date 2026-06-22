@@ -91,9 +91,7 @@ async function loadPlayCounts() {
     const map = Object.fromEntries(data.map((r) => [r.game_id, { plays: Number(r.plays) || 0, shares: Number(r.shares) || 0 }]));
     document.querySelectorAll(".appcard__plays").forEach((el) => {
       const s = map[el.dataset.game] || { plays: 0, shares: 0 };
-      let txt = "🔥 " + s.plays.toLocaleString() + " 플레이";
-      if (s.shares > 0) txt += "  ·  🔗 " + s.shares.toLocaleString() + " 공유";
-      el.textContent = txt;
+      el.textContent = "🔥 " + s.plays.toLocaleString() + " 플레이  ·  🔗 " + s.shares.toLocaleString() + " 공유";
       el.hidden = false;
     });
   } catch (e) { /* 조용히 무시 */ }
