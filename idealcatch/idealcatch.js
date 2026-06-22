@@ -304,7 +304,7 @@ async function finishGame() {
   resultPrimary = collected[(Math.random() * collected.length) | 0];
   phase = "result"; phaseStart = performance.now();
   playComplete();
-  await wait(2800);
+  await wait(4600);
   phase = "outro"; phaseStart = performance.now();
   playOutro();
   await wait(2300);
@@ -443,7 +443,8 @@ function render(now, src) {
     ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
     ctx.drawImage(video, tr.ox, tr.oy, tr.dw, tr.dh);
     ctx.restore();
-    ctx.fillStyle = "rgba(10,13,10,0.5)"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = phase === "result" ? "rgba(10,13,10,0.28)" : "rgba(10,13,10,0.5)"; // 결과 땐 얼굴 더 밝게
+    ctx.fillRect(0, 0, W, H);
   }
 
   if (phase === "ready") { renderNet(now, src); renderReady(now); updateModePill(now, src); return; }
@@ -522,23 +523,31 @@ function renderResult(now) {
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(0.94 + 0.06 * t, 0.94 + 0.06 * t); ctx.translate(-W / 2, -H / 2);
 
-  roundRect(cx, cy, cw, ch, MIN * 0.06);
-  ctx.fillStyle = "rgba(18,14,18,0.95)"; ctx.fill();
-  ctx.strokeStyle = "rgba(255,122,184,0.5)"; ctx.lineWidth = 2; ctx.stroke();
-
+  const fam = '"Noto Sans KR", system-ui, sans-serif';
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.font = `800 ${MIN * 0.044}px "Noto Sans KR", system-ui, sans-serif`;
+
+  // 배경 투명 — 얼굴이 비치도록 핑크 글로우 테두리만
+  roundRect(cx, cy, cw, ch, MIN * 0.06);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,150,200,0.92)"; ctx.lineWidth = MIN * 0.006;
+  ctx.shadowBlur = MIN * 0.03; ctx.shadowColor = "rgba(255,90,160,0.7)";
+  ctx.stroke();
+  ctx.restore();
+
+  // 글자 가독성용 그림자(투명 배경 위에서도 또렷하게)
+  ctx.shadowColor = "rgba(0,0,0,0.92)"; ctx.shadowBlur = MIN * 0.022;
+  ctx.fillStyle = "#fff";
+  ctx.font = `800 ${MIN * 0.044}px ${fam}`;
   ctx.fillText(T().resultQ, W / 2, cy + ch * 0.15);
 
   const headline = T().resultTmpl(traitLabel(resultPrimary));
-  const fam = '"Noto Sans KR", system-ui, sans-serif';
   const hSize = fitFont(headline, MIN * 0.082, cw * 0.86, 900, fam);
   ctx.fillStyle = traitColor(resultPrimary);
   ctx.font = `900 ${hSize}px ${fam}`;
   ctx.fillText(headline, W / 2, cy + ch * 0.31);
 
   // 배지(색상, 대표는 크게) — 길면 한 줄에 맞게 축소
+  ctx.shadowBlur = 0; // pill은 자체 배경/그림자가 있으니 텍스트 그림자 끔
   const fs = MIN * 0.034, gap = MIN * 0.016;
   ctx.font = `800 ${fs}px ${fam}`;
   const widths = collected.map((k) => (ctx.measureText(traitLabel(k)).width + fs * 1.5) * (k === resultPrimary ? 1.12 : 1));
@@ -552,13 +561,15 @@ function renderResult(now) {
     bx += bw + gap * rs;
   });
 
-  ctx.fillStyle = "rgba(255,255,255,0.82)";
-  ctx.font = `700 ${MIN * 0.04}px "Noto Sans KR", system-ui, sans-serif`;
+  ctx.shadowColor = "rgba(0,0,0,0.92)"; ctx.shadowBlur = MIN * 0.022;
+  ctx.fillStyle = "#fff";
+  ctx.font = `700 ${MIN * 0.04}px ${fam}`;
   ctx.fillText(T().resultAll, W / 2, cy + ch * 0.71);
 
-  ctx.fillStyle = "rgba(132,226,191,0.9)";
+  ctx.fillStyle = "#9af0d0";
   ctx.font = `800 ${MIN * 0.032}px "Inter", sans-serif`;
   ctx.fillText("kkamnol.xyz", W / 2, cy + ch * 0.86);
+  ctx.shadowBlur = 0;
   ctx.restore();
   ctx.globalAlpha = 1;
 }
