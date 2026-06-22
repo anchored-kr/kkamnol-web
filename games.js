@@ -12,9 +12,10 @@ const GRADIENTS = {
   ghost: "linear-gradient(145deg,#f4f4f6,#e8e8ec)",
 };
 
-// 현재 허브에는 '이상형 캐치캐치'만 노출. 나머지 게임(goalkeeper·grandprix·jaemok·
-// 깜놀타임)은 카드만 내림 — 파일/라우트는 그대로라 직접 URL 접근은 가능하고,
+// 현재 허브에는 '이상형 캐치캐치'만 노출. 나머지 게임(goalkeeper·jaemok·깜놀타임)은
+// 카드만 내림 — 파일/라우트는 그대로라 직접 URL 접근은 가능하고,
 // 다시 노출하려면 아래 배열에 객체만 되살리면 됩니다. (이전 목록은 git 히스토리 참조)
+// grandprix는 폐기(폴더 삭제). Supabase 공유 설정은 /supabase-config.js 로 이전됨.
 const GAMES = [
   {
     id: "idealcatch",
@@ -82,7 +83,7 @@ renderCards();
 /* ===== 게임별 총 플레이 카운트 (Supabase, 미설정 시 미표시) ===== */
 async function loadPlayCounts() {
   try {
-    const cfg = await import("/grandprix/supabase-config.js");
+    const cfg = await import("/supabase-config.js");
     if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) return;          // 미설정 → 표시 안 함
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: false } });

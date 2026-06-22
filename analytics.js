@@ -1,10 +1,10 @@
 /* ============================================================
    Kkamnol — 게임 공용 애널리틱스 (Supabase)
    누적 플레이/공유 카운트. 키 미설정 시 조용히 no-op.
-   설정: /grandprix/supabase-config.js 에 URL·anon key 입력 +
-        /grandprix/db/supabase-setup.sql 실행(game_stats·bump_play·bump_share).
+   설정: /supabase-config.js 에 URL·anon key 입력 +
+        /db/supabase-setup.sql 실행(game_stats·bump_play·bump_share).
    ============================================================ */
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/grandprix/supabase-config.js";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/supabase-config.js";
 
 const enabled = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 let _sb = null;
