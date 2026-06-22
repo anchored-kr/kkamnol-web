@@ -12,10 +12,9 @@ const GRADIENTS = {
   ghost: "linear-gradient(145deg,#f4f4f6,#e8e8ec)",
 };
 
-// 현재 허브에는 '이상형 캐치캐치'만 노출. 나머지 게임(goalkeeper·jaemok·깜놀타임)은
-// 카드만 내림 — 파일/라우트는 그대로라 직접 URL 접근은 가능하고,
-// 다시 노출하려면 아래 배열에 객체만 되살리면 됩니다. (이전 목록은 git 히스토리 참조)
-// grandprix는 폐기(폴더 삭제). Supabase 공유 설정은 /supabase-config.js 로 이전됨.
+// 허브에는 '이상형 캐치캐치'만 존재. 나머지 게임(grandprix·goalkeeper·jaemok)은 폐기(폴더 삭제).
+// 이전 게임은 git 히스토리 참조. 새 게임은 아래 배열에 객체 하나 추가하면 카드가 생깁니다.
+// Supabase 공유 설정: /supabase-config.js · 애널리틱스 SQL: /db/supabase-setup.sql
 const GAMES = [
   {
     id: "idealcatch",
