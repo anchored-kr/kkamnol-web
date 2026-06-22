@@ -86,6 +86,13 @@ const T = () => I18N[lang];
 const traitLabel = (key) => TRAITS[key][lang] ?? TRAITS[key].en ?? TRAITS[key].ko;
 const traitColor = (key) => TRAITS[key].color;
 
+// 준비/카운트다운 문구 (ko·en·ja·zh, 그 외 en 폴백)
+const READY = {
+  grabNet: { ko: "✋ 뜰채를 손으로 잡으세요!", en: "✋ Grab the net with your hand!", ja: "✋ 網を手で掴んで！", zh: "✋ 用手抓住网！" },
+  go: { ko: "시작!", en: "GO!", ja: "スタート!", zh: "开始!" },
+};
+const tx = (k) => READY[k][lang] ?? READY[k].en;
+
 // 색 대비: 밝은 색이면 어두운 글자
 function inkFor(hex) {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
@@ -111,6 +118,7 @@ let phaseStart = 0;
 let words = [], collected = [], effects = [];
 let resultPrimary = null, finishing = false, lastSpawn = 0;
 let grabUntil = 0, grabColor = "#fff";
+let countdownStart = 0, lastTick = -1, goFlashUntil = 0;
 
 let handLandmarker = null, camOn = false, lastVideoTime = -1;
 let bladePts = [];
@@ -232,7 +240,8 @@ function handTip(t) {
 async function startGame() {
   ensureAudio();
   if (audioCtx.state === "suspended") { try { await audioCtx.resume(); } catch {} }
-  phase = "play"; phaseStart = performance.now();
+  phase = "ready"; phaseStart = performance.now();
+  countdownStart = 0; lastTick = -1; goFlashUntil = 0;
   words = []; collected = []; effects = []; resultPrimary = null; finishing = false; lastSpawn = 0;
   startScreen.hidden = true; shareScreen.hidden = true;
   startRecording();
@@ -347,6 +356,20 @@ function frame(now) {
   while (bladePts.length && now - bladePts[0].t > 120) bladePts.shift();
   if (bladePts.length > 8) bladePts.shift();
 
+  if (phase === "ready") {
+    const needHand = camOn; // 카메라면 손을 보여줘야 시작
+    if (!countdownStart) {
+      if (needHand) { if (src === "hand") countdownStart = now; else if (now - phaseStart > 6000) countdownStart = now; }
+      else countdownStart = now;
+    }
+    if (countdownStart) {
+      const sec = (now - countdownStart) / 1000;
+      const cur = Math.ceil(3 - sec); // 3 → 2 → 1
+      if (cur !== lastTick && cur >= 1 && cur <= 3) { lastTick = cur; tone(620 + (3 - cur) * 140, 0, 0.13, "square", 0.3); }
+      if (sec >= 3) { tone(1320, 0, 0.2, "square", 0.32); goFlashUntil = now + 700; phase = "play"; phaseStart = now; lastSpawn = now; }
+    }
+  }
+
   if (phase === "play") {
     if (now - lastSpawn > 950) { lastSpawn = now; spawnWord(); if (Math.random() < 0.3) spawnWord(); }
     for (let i = words.length - 1; i >= 0; i--) {
@@ -423,6 +446,8 @@ function render(now, src) {
     ctx.fillStyle = "rgba(10,13,10,0.5)"; ctx.fillRect(0, 0, W, H);
   }
 
+  if (phase === "ready") { renderNet(now, src); renderReady(now); updateModePill(now, src); return; }
+
   if (phase === "play" || phase === "result") {
     for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key), 1, Math.sin(wd.wob) * 0.2);
     renderEffects();
@@ -430,6 +455,14 @@ function render(now, src) {
   }
   if (phase === "result") renderResult(now);
   if (phase === "play") renderNet(now, src);
+  if (now < goFlashUntil) {
+    ctx.save(); ctx.globalAlpha = Math.min(1, (goFlashUntil - now) / 350);
+    ctx.fillStyle = "#84e2bf"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowBlur = MIN * 0.05; ctx.shadowColor = "rgba(132,226,191,0.9)";
+    ctx.font = `900 ${MIN * 0.13}px "Inter", sans-serif`;
+    ctx.fillText(tx("go"), W / 2, H * 0.4);
+    ctx.restore();
+  }
   updateModePill(now, src);
 }
 
@@ -551,6 +584,32 @@ function renderOutro(now) {
   ctx.font = `700 ${MIN * 0.034}px "Inter", sans-serif`;
   ctx.fillText("kkamnol.xyz", W / 2, H / 2 + MIN * 0.17);
   ctx.globalAlpha = 1;
+}
+
+// 준비 화면 — "뜰채를 잡으세요" 프롬프트 → 3·2·1 카운트다운
+function renderReady(now) {
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (!countdownStart) {
+    const fam = '"Noto Sans KR", system-ui, sans-serif';
+    ctx.fillStyle = "#fff";
+    ctx.shadowBlur = MIN * 0.025; ctx.shadowColor = "rgba(0,0,0,0.7)";
+    ctx.font = `800 ${fitFont(tx("grabNet"), MIN * 0.052, W * 0.88, 800, fam)}px ${fam}`;
+    ctx.fillText(tx("grabNet"), W / 2, H * 0.42);
+    ctx.shadowBlur = 0;
+  } else {
+    const sec = (now - countdownStart) / 1000;
+    const cur = Math.ceil(3 - sec);
+    if (sec < 3 && cur >= 1) {
+      const within = (3 - sec) - (cur - 1); // 1→0 (현재 숫자 진행도)
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, within * 2.4);
+      ctx.fillStyle = "#fff";
+      ctx.shadowBlur = MIN * 0.06; ctx.shadowColor = "rgba(255,122,184,0.9)";
+      ctx.font = `900 ${MIN * 0.26 * (1.35 - within * 0.35)}px "Inter", sans-serif`;
+      ctx.fillText(String(cur), W / 2, H / 2);
+      ctx.restore();
+    }
+  }
 }
 
 // 뜰채(landing net) 캐쳐 — 팔딱 튀는 낱말을 떠서 받는 느낌
