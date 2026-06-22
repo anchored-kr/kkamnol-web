@@ -25,6 +25,40 @@ const TRAITS = {
   cooking:     { color: "#ff6b4a", ko:"요리실력", en:"Cooking", ja:"料理上手", zh:"厨艺", es:"Cocina", pt:"Culinária", fr:"Cuisine", de:"Kochkunst", it:"Cucina", ru:"Кулинария", tr:"Yemek", id:"Masakan", vi:"Nấu ăn", th:"ทำอาหาร", ar:"الطبخ", hi:"खाना बनाना" },
   health:      { color: "#4ade80", ko:"건강", en:"Health", ja:"健康", zh:"健康", es:"Salud", pt:"Saúde", fr:"Santé", de:"Gesundheit", it:"Salute", ru:"Здоровье", tr:"Sağlık", id:"Kesehatan", vi:"Sức khỏe", th:"สุขภาพ", ar:"الصحة", hi:"सेहत" },
   competence:  { color: "#fbbf24", ko:"능력", en:"Competence", ja:"能力", zh:"能力", es:"Capacidad", pt:"Competência", fr:"Compétence", de:"Kompetenz", it:"Competenza", ru:"Способности", tr:"Yetenek", id:"Kemampuan", vi:"Năng lực", th:"ความสามารถ", ar:"الكفاءة", hi:"योग्यता" },
+
+  // ── 추가 낱말(밈/재미): ko·en·ja·zh 우선, 그 외 언어는 en 폴백 ──
+  // 신체
+  shoulders:   { color:"#5b9bd5", ko:"넓은 어깨", en:"Broad shoulders", ja:"広い肩幅", zh:"宽肩" },
+  sline:       { color:"#ff7eb6", ko:"S라인", en:"S-line figure", ja:"Sライン", zh:"S曲线" },
+  sixpack:     { color:"#e8924a", ko:"식스팩", en:"Six-pack", ja:"シックスパック", zh:"六块腹肌" },
+  longlegs:    { color:"#34d399", ko:"롱다리", en:"Long legs", ja:"美脚", zh:"大长腿" },
+  tall180:     { color:"#6ea8fe", ko:"키 180+", en:"180cm+", ja:"身長180+", zh:"身高180+" },
+  eyesmile:    { color:"#f9a8d4", ko:"눈웃음", en:"Eye-smile", ja:"目が笑う", zh:"笑眼" },
+  honeyskin:   { color:"#fcd34d", ko:"꿀피부", en:"Glowing skin", ja:"美肌", zh:"好皮肤" },
+  // 세속/재력
+  income50:    { color:"#f4c430", ko:"연봉 5천+", en:"Solid income", ja:"年収高め", zh:"高薪" },
+  income100:   { color:"#eab308", ko:"연봉 1억+", en:"6-figure income", ja:"年収1千万+", zh:"年薪百万+" },
+  building:    { color:"#c9a227", ko:"건물주", en:"Owns a building", ja:"ビルのオーナー", zh:"包租公婆" },
+  ownhouse:    { color:"#86c34a", ko:"자가 보유", en:"Owns a home", ja:"持ち家", zh:"有房" },
+  nodebt:      { color:"#4ade80", ko:"빚 없음", en:"Debt-free", ja:"借金なし", zh:"无负债" },
+  foreigncar:  { color:"#b0bec5", ko:"외제차", en:"Imported car", ja:"外車持ち", zh:"进口车" },
+  stablejob:   { color:"#38bdf8", ko:"안정적 직장", en:"Stable job", ja:"安定職", zh:"稳定工作" },
+  cryptohit:   { color:"#f7931a", ko:"코인 떡상", en:"Crypto gains", ja:"仮想通貨成功", zh:"币圈赢家" },
+  // 가족/밈
+  youngestson: { color:"#a78bfa", ko:"종갓집 막내", en:"No family duties", ja:"本家の末っ子", zh:"无家族负担" },
+  richparents: { color:"#ffd23f", ko:"노후 든든 부모님", en:"Wealthy parents", ja:"裕福な両親", zh:"父母无忧老后" },
+  onlychild:   { color:"#fb923c", ko:"외동", en:"Only child", ja:"一人っ子", zh:"独生子女" },
+  noinlaw:     { color:"#5eead4", ko:"시월드 없음", en:"No in-law drama", ja:"義実家トラブル無し", zh:"没婆媳问题" },
+  inlawfar:    { color:"#93c5fd", ko:"시댁 멀리", en:"In-laws far away", ja:"義実家が遠い", zh:"公婆住得远" },
+  // 라이프/밈
+  nogames:     { color:"#ef4444", ko:"게임 안 함", en:"Doesn't game", ja:"ゲームしない", zh:"不打游戏" },
+  nodrink:     { color:"#22d3ee", ko:"술 안 함", en:"Doesn't drink", ja:"お酒飲まない", zh:"不喝酒" },
+  notmamaboy:  { color:"#fb7185", ko:"마마보이 아님", en:"Not a mama's boy", ja:"マザコンじゃない", zh:"非妈宝" },
+  homebody:    { color:"#c084fc", ko:"집순이집돌이", en:"Homebody", ja:"インドア派", zh:"宅家" },
+  goodmbti:    { color:"#2dd4bf", ko:"잘 맞는 MBTI", en:"Matching MBTI", ja:"相性のMBTI", zh:"MBTI合拍" },
+  greenflag:   { color:"#4ade80", ko:"효자효녀", en:"Green flag", ja:"親孝行", zh:"孝顺" },
+  gooddriver:  { color:"#9ca3af", ko:"운전 잘함", en:"Good driver", ja:"運転上手", zh:"车技好" },
+  petlover:    { color:"#a3e635", ko:"동물 잘 챙김", en:"Loves pets", ja:"動物好き", zh:"爱宠物" },
 };
 const TRAIT_KEYS = Object.keys(TRAITS);
 
@@ -49,7 +83,7 @@ const I18N = {
 };
 let lang = "ko";
 const T = () => I18N[lang];
-const traitLabel = (key) => TRAITS[key][lang];
+const traitLabel = (key) => TRAITS[key][lang] ?? TRAITS[key].en ?? TRAITS[key].ko;
 const traitColor = (key) => TRAITS[key].color;
 
 // 색 대비: 밝은 색이면 어두운 글자
@@ -211,14 +245,16 @@ function spawnWord() {
   const avail = availableKeys();
   if (!avail.length) return;
   const key = avail[(Math.random() * avail.length) | 0];
-  const fs = MIN * 0.052;
+  const fs = MIN * 0.05;
   ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
   const w = ctx.measureText(traitLabel(key)).width + fs * 1.7;
   const h = fs * 2.0;
+  // 물고기처럼 팔딱 — 아래에서 위로 포물선으로 튀어오름
+  const g = 1.5 * H, f = 0.42 + Math.random() * 0.3;
   words.push({
-    key, x: W * (0.16 + Math.random() * 0.68), y: H + h,
-    vx: (Math.random() - 0.5) * 0.05 * H, vy: -(0.12 + Math.random() * 0.05) * H,
-    w, h, fs, hitR: Math.max(w, h) * 0.55, wob: Math.random() * 6.28,
+    key, x: W * (0.18 + Math.random() * 0.64), y: H + h * 0.5,
+    vx: (Math.random() - 0.5) * 0.22 * H, vy: -Math.sqrt(2 * g * f * H), g,
+    w, h, fs, hitR: Math.max(w, h) * 0.5, wob: Math.random() * 6.28, vwob: 7 + Math.random() * 5,
   });
 }
 
@@ -227,9 +263,10 @@ function trayTarget() { return { x: W / 2, y: MIN * 0.11 }; }
 
 function tryCatch(tip) {
   if (!tip) return;
+  const netR = MIN * 0.085; // 뜰채 입구 반경
   for (let i = words.length - 1; i >= 0; i--) {
     const wd = words[i];
-    if (Math.hypot(tip.x - wd.x, tip.y - wd.y) < wd.hitR + MIN * 0.025) {
+    if (Math.hypot(tip.x - wd.x, tip.y - wd.y) < netR + wd.hitR * 0.55) {
       const col = traitColor(wd.key);
       collected.push(wd.key);
       grabUntil = performance.now() + 220; grabColor = col;
@@ -311,13 +348,14 @@ function frame(now) {
   if (bladePts.length > 8) bladePts.shift();
 
   if (phase === "play") {
-    if (now - lastSpawn > 1100) { lastSpawn = now; spawnWord(); }
+    if (now - lastSpawn > 950) { lastSpawn = now; spawnWord(); if (Math.random() < 0.3) spawnWord(); }
     for (let i = words.length - 1; i >= 0; i--) {
       const wd = words[i];
-      wd.wob += dt * 2;
-      wd.x += (wd.vx + Math.sin(wd.wob) * 0.04 * H) * dt;
+      wd.wob += dt * wd.vwob;
+      wd.vy += wd.g * dt;
+      wd.x += wd.vx * dt;
       wd.y += wd.vy * dt;
-      if (wd.y < -wd.h) words.splice(i, 1);
+      if (wd.y > H + wd.h && wd.vy > 0) words.splice(i, 1); // 못 받으면 떨어져 사라짐
     }
     tryCatch(tip);
   }
@@ -349,9 +387,9 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function pill(cx, cy, label, fs, color, scale = 1) {
+function pill(cx, cy, label, fs, color, scale = 1, rot = 0) {
   ctx.save();
-  ctx.translate(cx, cy); ctx.scale(scale, scale);
+  ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(scale, scale);
   ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   const w = ctx.measureText(label).width + fs * 1.5, h = fs * 1.9;
@@ -363,6 +401,11 @@ function pill(cx, cy, label, fs, color, scale = 1) {
   ctx.fillText(label, 0, 0);
   ctx.restore();
   return w;
+}
+function fitFont(text, base, maxW, weight, fam) {
+  ctx.font = `${weight} ${base}px ${fam}`;
+  const w = ctx.measureText(text).width;
+  return w > maxW ? base * maxW / w : base;
 }
 
 // ---------- 렌더 ----------
@@ -381,12 +424,12 @@ function render(now, src) {
   }
 
   if (phase === "play" || phase === "result") {
-    for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key));
+    for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key), 1, Math.sin(wd.wob) * 0.2);
     renderEffects();
     renderTray();
   }
   if (phase === "result") renderResult(now);
-  if (phase === "play") renderHand(now, src);
+  if (phase === "play") renderNet(now, src);
   updateModePill(now, src);
 }
 
@@ -455,20 +498,25 @@ function renderResult(now) {
   ctx.font = `800 ${MIN * 0.044}px "Noto Sans KR", system-ui, sans-serif`;
   ctx.fillText(T().resultQ, W / 2, cy + ch * 0.15);
 
+  const headline = T().resultTmpl(traitLabel(resultPrimary));
+  const fam = '"Noto Sans KR", system-ui, sans-serif';
+  const hSize = fitFont(headline, MIN * 0.082, cw * 0.86, 900, fam);
   ctx.fillStyle = traitColor(resultPrimary);
-  ctx.font = `900 ${MIN * 0.082}px "Noto Sans KR", system-ui, sans-serif`;
-  ctx.fillText(T().resultTmpl(traitLabel(resultPrimary)), W / 2, cy + ch * 0.31);
+  ctx.font = `900 ${hSize}px ${fam}`;
+  ctx.fillText(headline, W / 2, cy + ch * 0.31);
 
-  // 배지(색상, 대표는 크게)
-  const fs = MIN * 0.034, gap = MIN * 0.018;
-  ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
+  // 배지(색상, 대표는 크게) — 길면 한 줄에 맞게 축소
+  const fs = MIN * 0.034, gap = MIN * 0.016;
+  ctx.font = `800 ${fs}px ${fam}`;
   const widths = collected.map((k) => (ctx.measureText(traitLabel(k)).width + fs * 1.5) * (k === resultPrimary ? 1.12 : 1));
-  const total = widths.reduce((a, b) => a + b + gap, -gap);
-  let bx = W / 2 - total / 2;
+  const rawTotal = widths.reduce((a, b) => a + b + gap, -gap);
+  const rs = Math.min(1, (cw * 0.9) / rawTotal);
+  let bx = W / 2 - (rawTotal * rs) / 2;
   const by = cy + ch * 0.51;
   collected.forEach((k, i) => {
-    pill(bx + widths[i] / 2, by, traitLabel(k), fs, traitColor(k), k === resultPrimary ? 1.12 : 1);
-    bx += widths[i] + gap;
+    const bw = widths[i] * rs;
+    pill(bx + bw / 2, by, traitLabel(k), fs, traitColor(k), (k === resultPrimary ? 1.12 : 1) * rs);
+    bx += bw + gap * rs;
   });
 
   ctx.fillStyle = "rgba(255,255,255,0.82)";
@@ -505,24 +553,42 @@ function renderOutro(now) {
   ctx.globalAlpha = 1;
 }
 
-// 손 캐쳐 — 잡는 느낌(✋ → 잡으면 ✊ + 펄스 링)
-function renderHand(now, src) {
+// 뜰채(landing net) 캐쳐 — 팔딱 튀는 낱말을 떠서 받는 느낌
+function renderNet(now, src) {
   if (bladePts.length < 1) return;
   const tip = bladePts[bladePts.length - 1];
-  const grabbing = now < grabUntil;
-  // 펄스 링
-  if (grabbing) {
+  const R = MIN * 0.088;
+  const scooping = now < grabUntil;
+  const glow = src === "hand" ? "rgba(132,226,191,0.95)" : "rgba(160,200,255,0.95)";
+  // 잡는 순간 입구가 번쩍
+  if (scooping) {
     const k = 1 - (grabUntil - now) / 220;
-    ctx.strokeStyle = grabColor; ctx.globalAlpha = 1 - k; ctx.lineWidth = MIN * 0.01;
-    ctx.beginPath(); ctx.arc(tip.x, tip.y, MIN * (0.05 + 0.08 * k), 0, 6.2832); ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.save(); ctx.globalAlpha = 1 - k;
+    ctx.strokeStyle = grabColor; ctx.lineWidth = MIN * 0.012;
+    ctx.beginPath(); ctx.ellipse(tip.x, tip.y, R * (1 + 0.4 * k), R * 0.45 * (1 + 0.4 * k), 0, 0, 6.2832); ctx.stroke();
+    ctx.restore();
   }
-  // 손 이모지
   ctx.save();
-  ctx.shadowBlur = MIN * 0.03; ctx.shadowColor = src === "hand" ? "rgba(132,226,191,0.9)" : "rgba(255,122,184,0.9)";
-  ctx.font = `${MIN * 0.1}px "Noto Color Emoji", "Apple Color Emoji", sans-serif`;
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(grabbing ? "✊" : "✋", tip.x, tip.y);
+  ctx.translate(tip.x, tip.y);
+  // 손잡이
+  ctx.strokeStyle = "rgba(205,170,130,0.95)"; ctx.lineWidth = MIN * 0.014; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(R * 0.55, -R * 0.4); ctx.lineTo(R * 2.0, -R * 1.6); ctx.stroke();
+  // 그물 (앞쪽 림 → 바닥 한 점으로 모이는 망)
+  const bag = R * 1.9;
+  ctx.strokeStyle = "rgba(232,240,248,0.42)"; ctx.lineWidth = Math.max(1, MIN * 0.0016);
+  for (let k = 0; k <= 7; k++) {
+    const a = Math.PI * (k / 7);
+    const rx = -Math.cos(a) * R, ry = Math.sin(a) * R * 0.42;
+    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.quadraticCurveTo(rx * 0.35, bag * 0.7, 0, bag); ctx.stroke();
+  }
+  for (let yy = 0.42; yy < 1.0; yy += 0.27) {
+    ctx.beginPath(); ctx.ellipse(0, bag * yy, R * (1 - yy * 0.6), R * 0.32 * (1 - yy * 0.4), 0, 0.15, Math.PI - 0.15); ctx.stroke();
+  }
+  // 림(테)
+  ctx.lineWidth = MIN * (scooping ? 0.017 : 0.012);
+  ctx.strokeStyle = scooping ? "#fff" : "#eef3f8";
+  ctx.shadowBlur = MIN * (scooping ? 0.05 : 0.03); ctx.shadowColor = glow;
+  ctx.beginPath(); ctx.ellipse(0, 0, R, R * 0.42, 0, 0, 6.2832); ctx.stroke();
   ctx.restore();
 }
 
