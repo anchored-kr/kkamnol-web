@@ -12,34 +12,10 @@ const GRADIENTS = {
   ghost: "linear-gradient(145deg,#f4f4f6,#e8e8ec)",
 };
 
+// 현재 허브에는 '이상형 캐치캐치'만 노출. 나머지 게임(goalkeeper·grandprix·jaemok·
+// 깜놀타임)은 카드만 내림 — 파일/라우트는 그대로라 직접 URL 접근은 가능하고,
+// 다시 노출하려면 아래 배열에 객체만 되살리면 됩니다. (이전 목록은 git 히스토리 참조)
 const GAMES = [
-  {
-    id: "goalkeeper",
-    title: "월드컵 골키퍼",
-    en: "World Cup Goalkeeper",
-    emoji: "🧤",
-    status: "live",
-    url: "/goalkeeper",
-    color: "grass",
-  },
-  {
-    id: "grandprix",
-    title: "제목학원 그랑프리",
-    en: "Caption Academy Grand Prix",
-    emoji: "🏆",
-    status: "live",
-    url: "/grandprix",
-    color: "lavender",
-  },
-  {
-    id: "jaemok",
-    title: "제목학원",
-    en: "Caption Academy",
-    emoji: "😆",
-    status: "live",
-    url: "/jaemok",
-    color: "peach",
-  },
   {
     id: "idealcatch",
     title: "이상형 캐치캐치",
@@ -47,14 +23,6 @@ const GAMES = [
     emoji: "💘",
     status: "live",
     url: "/idealcatch",
-    color: "pink",
-  },
-  {
-    title: "깜놀타임",
-    en: "Kkamnol Time",
-    emoji: "😮",
-    status: "soon",
-    url: "",
     color: "pink",
   },
 ];
