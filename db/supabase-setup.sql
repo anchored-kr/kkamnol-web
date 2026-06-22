@@ -13,6 +13,9 @@ create table if not exists public.game_stats (
 -- 기존 테이블이 이미 있으면 shares 컬럼 추가
 alter table public.game_stats add column if not exists shares bigint not null default 0;
 
+-- 직접 접근 차단(정책 없음). 읽기는 아래 뷰, 쓰기는 RPC(security definer)로만 → 카운트 변조 방지
+alter table public.game_stats enable row level security;
+
 -- 플레이 +1 (없으면 생성) → 새 값 반환
 create or replace function public.bump_play(g text) returns bigint
 language plpgsql security definer set search_path = public as $$
