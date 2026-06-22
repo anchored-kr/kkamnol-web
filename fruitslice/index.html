@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>깜놀 슬라이스 — Kkamnol</title>
+    <meta name="description" content="손바닥으로 과일을 베어라. 웹캠 손 추적 과일 베기 게임. 폭탄을 베면 깜놀! Kkamnol 깜놀 슬라이스." />
+    <link rel="canonical" href="https://kkamnol.xyz/fruitslice" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kkamnol.xyz/fruitslice" />
+    <meta property="og:title" content="깜놀 슬라이스 — Kkamnol" />
+    <meta property="og:description" content="손으로 허공을 그어 과일을 베어라. 폭탄은 깜놀! 카메라만 켜면 바로 플레이." />
+    <meta property="og:image" content="https://kkamnol.xyz/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#0a0d0a" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍉</text></svg>" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,800;1,900&family=Noto+Sans+KR:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/fruitslice/fruitslice.css" />
+  </head>
+  <body>
+    <!-- 웹캠 (거울모드로 캔버스에 그려짐, 엘리먼트 자체는 숨김) -->
+    <video id="cam" playsinline muted autoplay></video>
+    <canvas id="stage"></canvas>
+
+    <header class="hud-top">
+      <a class="brand" href="/">
+        <span class="brand__mark">😮</span><span class="brand__name">kkamnol</span>
+      </a>
+      <div class="stats">
+        <span id="score" class="score">0</span>
+        <span id="lives" class="lives">❤️❤️❤️</span>
+      </div>
+      <span id="mode" class="mode-pill">· · ·</span>
+    </header>
+
+    <!-- 시작 화면 -->
+    <section id="startScreen" class="overlay">
+      <div class="panel">
+        <p class="eyebrow">Kkamnol Slice</p>
+        <h1>깜놀 슬라이스 🍉</h1>
+        <p class="sub">허공에 손을 <b>휙</b> 그어 과일을 베어라.<br />💣 폭탄을 베면 <b>깜놀!</b> — 한 방에 끝.</p>
+        <button id="startBtn" class="btn btn--primary">카메라 켜고 시작</button>
+        <button id="startNoCam" class="btn btn--ghost">마우스/터치로 플레이</button>
+        <p class="hint">카메라 영상은 기기 밖으로 나가지 않아요 (전부 브라우저 안에서 처리).</p>
+      </div>
+    </section>
+
+    <!-- 게임오버 -->
+    <section id="overScreen" class="overlay" hidden>
+      <div class="panel">
+        <p class="eyebrow" id="overReason">게임 끝!</p>
+        <h1 id="overScore">0</h1>
+        <p class="sub">최고 점수 <b id="overBest">0</b></p>
+        <button id="retryBtn" class="btn btn--primary">다시 베기</button>
+        <button id="shareBtn" class="btn btn--ghost">공유하기</button>
+      </div>
+    </section>
+
+    <!-- 로딩/토스트 -->
+    <div id="toast" class="toast" hidden></div>
+
+    <footer class="hud-bottom">
+      <span>© 2026 Kkamnol Interactive</span>
+      <span class="links">
+        <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
+      </span>
+    </footer>
+
+    <script src="/fruitslice/fruitslice.js" type="module"></script>
+  </body>
+</html>

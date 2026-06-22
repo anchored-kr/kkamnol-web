@@ -31,6 +31,15 @@ const GAMES = [
     color: "peach",
   },
   {
+    id: "fruitslice",
+    title: "깜놀 슬라이스",
+    en: "Kkamnol Slice",
+    emoji: "🍉",
+    status: "live",
+    url: "/fruitslice",
+    color: "mint",
+  },
+  {
     title: "깜놀타임",
     en: "Kkamnol Time",
     emoji: "😮",
