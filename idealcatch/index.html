@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>이상형 캐치캐치 — Kkamnol</title>
+    <meta name="description" content="손으로 이상형 조건을 잡아 나만의 배우자를 완성! 웹캠 손 추적 미니게임. 영상으로 SNS에 공유하세요. Kkamnol 이상형 캐치캐치." />
+    <link rel="canonical" href="https://kkamnol.xyz/idealcatch" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kkamnol.xyz/idealcatch" />
+    <meta property="og:title" content="이상형 캐치캐치 — Kkamnol" />
+    <meta property="og:description" content="손으로 조건 5개를 잡아 이상형 완성! 결과 영상으로 공유하기." />
+    <meta property="og:image" content="https://kkamnol.xyz/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#0a0d0a" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💘</text></svg>" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,800;1,900&family=Noto+Sans+KR:wght@500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/idealcatch/idealcatch.css" />
+  </head>
+  <body>
+    <video id="cam" playsinline muted autoplay></video>
+    <canvas id="stage"></canvas>
+
+    <header class="hud-top">
+      <a class="brand" href="/">
+        <span class="brand__mark">😮</span><span class="brand__name">kkamnol</span>
+      </a>
+      <span id="rec" class="rec" hidden>● REC</span>
+      <span id="mode" class="mode-pill">· · ·</span>
+    </header>
+
+    <!-- 1) 언어 선택 -->
+    <section id="langScreen" class="overlay">
+      <div class="panel">
+        <p class="eyebrow">Kkamnol</p>
+        <h1 id="langTitle">언어를 선택하세요</h1>
+        <div id="langGrid" class="lang-grid"></div>
+      </div>
+    </section>
+
+    <!-- 2) 시작 -->
+    <section id="startScreen" class="overlay" hidden>
+      <div class="panel">
+        <p class="eyebrow">💘 Ideal Type</p>
+        <h1 id="startTitle">이상형 캐치캐치</h1>
+        <p id="startTagline" class="sub">손으로 잡아 이상형을 완성!</p>
+        <p id="startHow" class="how">위로 떠오르는 조건을 5개 캐치하세요</p>
+        <button id="startBtn" class="btn btn--primary">카메라 켜고 시작</button>
+        <button id="startNoCam" class="btn btn--ghost">마우스/터치로 플레이</button>
+        <p id="startPrivacy" class="hint">영상은 기기 안에서만 처리돼요</p>
+      </div>
+    </section>
+
+    <!-- 3) 공유 (녹화 종료 후) -->
+    <section id="shareScreen" class="overlay" hidden>
+      <div class="panel">
+        <p id="shareTitle" class="eyebrow">완성! 영상으로 공유하세요</p>
+        <video id="shareVid" class="share-vid" playsinline loop muted autoplay></video>
+        <button id="shareBtn" class="btn btn--primary">영상 공유</button>
+        <button id="shareSave" class="btn btn--ghost">영상 저장</button>
+        <button id="againBtn" class="btn btn--ghost">다시 하기</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <footer class="hud-bottom">
+      <span>© 2026 Kkamnol Interactive</span>
+      <span class="links">
+        <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
+      </span>
+    </footer>
+
+    <script src="/idealcatch/idealcatch.js" type="module"></script>
+  </body>
+</html>
