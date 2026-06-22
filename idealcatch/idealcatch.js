@@ -8,6 +8,7 @@ import {
   FilesetResolver,
   HandLandmarker,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+import { bumpPlay, bumpShare } from "/analytics.js";
 
 // ---------- 조건(트레잇): 색상 + 16개국 번역 ----------
 const TRAITS = {
@@ -245,6 +246,7 @@ async function startGame() {
   words = []; collected = []; effects = []; resultPrimary = null; finishing = false; lastSpawn = 0;
   startScreen.hidden = true; shareScreen.hidden = true;
   startRecording();
+  bumpPlay("idealcatch"); // 누적 플레이 +1
 }
 function availableKeys() {
   const used = new Set([...collected, ...words.map((w) => w.key)]);
@@ -331,8 +333,8 @@ function showShare(blob) {
 function downloadBlob(url, name) { const a = document.createElement("a"); a.href = url; a.download = name; a.click(); }
 async function shareLink() {
   const url = "https://kkamnol.xyz/idealcatch";
-  try { if (navigator.share) { await navigator.share({ title: T().title, text: T().tagline, url }); return; } } catch { return; }
-  try { await navigator.clipboard.writeText(url); toast(T().linkCopied); } catch { toast(url); }
+  try { if (navigator.share) { await navigator.share({ title: T().title, text: T().tagline, url }); bumpShare("idealcatch"); return; } } catch { return; } // 취소 시 카운트 안 함
+  try { await navigator.clipboard.writeText(url); bumpShare("idealcatch"); toast(T().linkCopied); } catch { toast(url); }
 }
 async function shareResultImage() {
   canvas.toBlob(async (b) => {

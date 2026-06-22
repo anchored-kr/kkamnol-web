@@ -88,10 +88,12 @@ async function loadPlayCounts() {
     const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
     const { data, error } = await sb.from("game_play_counts").select("*");
     if (error || !data) return;
-    const map = Object.fromEntries(data.map((r) => [r.game_id, Number(r.plays)]));
+    const map = Object.fromEntries(data.map((r) => [r.game_id, { plays: Number(r.plays) || 0, shares: Number(r.shares) || 0 }]));
     document.querySelectorAll(".appcard__plays").forEach((el) => {
-      const n = map[el.dataset.game] || 0;
-      el.textContent = "🔥 " + n.toLocaleString() + "회 플레이";
+      const s = map[el.dataset.game] || { plays: 0, shares: 0 };
+      let txt = "🔥 " + s.plays.toLocaleString() + " 플레이";
+      if (s.shares > 0) txt += "  ·  🔗 " + s.shares.toLocaleString() + " 공유";
+      el.textContent = txt;
       el.hidden = false;
     });
   } catch (e) { /* 조용히 무시 */ }
