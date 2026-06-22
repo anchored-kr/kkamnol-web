@@ -549,20 +549,38 @@ function renderResult(now) {
   ctx.font = `900 ${hSize}px ${fam}`;
   ctx.fillText(headline, W / 2, cy + ch * 0.31);
 
-  // 배지(색상, 대표는 크게) — 길면 한 줄에 맞게 축소
+  // 배지(색상, 대표는 크게) — 크게 + 안 들어가면 여러 줄로(한 줄에 욱여넣어 작아지지 않게)
   ctx.shadowBlur = 0; // pill은 자체 배경/그림자가 있으니 텍스트 그림자 끔
-  const fs = MIN * 0.034, gap = MIN * 0.016;
+  const fs = MIN * 0.047, gap = MIN * 0.018, rowGap = MIN * 0.022;
+  const maxRow = cw * 0.88;
   ctx.font = `800 ${fs}px ${fam}`;
-  const widths = collected.map((k) => (ctx.measureText(traitLabel(k)).width + fs * 1.5) * (k === resultPrimary ? 1.12 : 1));
-  const rawTotal = widths.reduce((a, b) => a + b + gap, -gap);
-  const rs = Math.min(1, (cw * 0.9) / rawTotal);
-  let bx = W / 2 - (rawTotal * rs) / 2;
-  const by = cy + ch * 0.51;
-  collected.forEach((k, i) => {
-    const bw = widths[i] * rs;
-    pill(bx + bw / 2, by, traitLabel(k), fs, traitColor(k), (k === resultPrimary ? 1.12 : 1) * rs);
-    bx += bw + gap * rs;
+  const items = collected.map((k) => {
+    const sc = k === resultPrimary ? 1.1 : 1;
+    return { k, sc, w: (ctx.measureText(traitLabel(k)).width + fs * 1.5) * sc };
   });
+  // greedy 줄바꿈
+  const rows = [[]];
+  let rw = 0;
+  for (const it of items) {
+    const need = it.w + (rows[rows.length - 1].length ? gap : 0);
+    if (rw + need > maxRow && rows[rows.length - 1].length) { rows.push([]); rw = 0; }
+    rows[rows.length - 1].push(it);
+    rw += need;
+  }
+  const bh = fs * 1.9;
+  const totalH = rows.length * bh + (rows.length - 1) * rowGap;
+  let by = cy + ch * 0.52 - totalH / 2 + bh / 2; // 배지 블록 세로 중앙
+  for (const row of rows) {
+    const rowW = row.reduce((a, it) => a + it.w, 0) + gap * (row.length - 1);
+    const rs = Math.min(1, maxRow / rowW); // 한 배지가 너무 길 때만 그 줄 살짝 축소
+    let bx = W / 2 - (rowW * rs) / 2;
+    for (const it of row) {
+      const bw = it.w * rs;
+      pill(bx + bw / 2, by, traitLabel(it.k), fs, traitColor(it.k), it.sc * rs);
+      bx += bw + gap * rs;
+    }
+    by += bh + rowGap;
+  }
 
   ctx.shadowColor = "rgba(0,0,0,0.92)"; ctx.shadowBlur = MIN * 0.022;
   ctx.fillStyle = "#fff";
