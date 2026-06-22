@@ -358,9 +358,10 @@ function frame(now) {
 
   if (phase === "ready") {
     const needHand = camOn; // 카메라면 손을 보여줘야 시작
+    const minPose = now - phaseStart > 1300; // 최소 1.3초 포즈 가이드 노출
     if (!countdownStart) {
-      if (needHand) { if (src === "hand") countdownStart = now; else if (now - phaseStart > 6000) countdownStart = now; }
-      else countdownStart = now;
+      if (needHand) { if (src === "hand" && minPose) countdownStart = now; else if (now - phaseStart > 6000) countdownStart = now; }
+      else if (minPose) countdownStart = now;
     }
     if (countdownStart) {
       const sec = (now - countdownStart) / 1000;
@@ -443,11 +444,11 @@ function render(now, src) {
     ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
     ctx.drawImage(video, tr.ox, tr.oy, tr.dw, tr.dh);
     ctx.restore();
-    ctx.fillStyle = phase === "result" ? "rgba(10,13,10,0.28)" : "rgba(10,13,10,0.5)"; // 결과 땐 얼굴 더 밝게
+    ctx.fillStyle = (phase === "result" || phase === "ready") ? "rgba(10,13,10,0.3)" : "rgba(10,13,10,0.5)"; // 결과·준비 땐 얼굴 더 밝게
     ctx.fillRect(0, 0, W, H);
   }
 
-  if (phase === "ready") { renderNet(now, src); renderReady(now); updateModePill(now, src); return; }
+  if (phase === "ready") { renderPoseGuide(now); renderNet(now, src); renderReady(now); updateModePill(now, src); return; }
 
   if (phase === "play" || phase === "result") {
     for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key), 1, Math.sin(wd.wob) * 0.2);
@@ -595,6 +596,62 @@ function renderOutro(now) {
   ctx.font = `700 ${MIN * 0.034}px "Inter", sans-serif`;
   ctx.fillText("kkamnol.xyz", W / 2, H / 2 + MIN * 0.17);
   ctx.globalAlpha = 1;
+}
+
+// 포즈 가이드 — 머리 위로 손 든 사람 실루엣 + 손 위치 타깃 링 (카운트다운 시작 시 페이드)
+function renderPoseGuide(now) {
+  const fade = countdownStart ? Math.max(0, 1 - (now - countdownStart) / 450) : 1;
+  if (fade <= 0) return;
+  const cx = W / 2, u = MIN;
+  const headR = u * 0.06;
+  const hy = H * 0.37;                 // 머리 중심
+  const shY = hy + headR * 1.5;        // 어깨
+  const shW = u * 0.155;               // 어깨 너비
+  const hipY = H * 0.66;
+  const handX = cx + u * 0.02, handY = H * 0.12; // 머리 위로 든 손
+  const pulse = 0.5 + 0.5 * Math.sin(now / 320);
+
+  ctx.save();
+  ctx.globalAlpha = fade * 0.5;
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  // 몸통
+  ctx.beginPath();
+  ctx.moveTo(cx - shW, shY);
+  ctx.quadraticCurveTo(cx - shW * 1.05, (shY + hipY) / 2, cx - shW * 0.72, hipY);
+  ctx.lineTo(cx + shW * 0.72, hipY);
+  ctx.quadraticCurveTo(cx + shW * 1.05, (shY + hipY) / 2, cx + shW, shY);
+  ctx.quadraticCurveTo(cx, shY - headR * 0.6, cx - shW, shY);
+  ctx.closePath(); ctx.fill();
+  // 머리
+  ctx.beginPath(); ctx.arc(cx, hy, headR, 0, 6.2832); ctx.fill();
+  // 팔(굵은 캡슐)
+  ctx.lineWidth = u * 0.05;
+  // 내린 팔(왼쪽)
+  ctx.beginPath();
+  ctx.moveTo(cx - shW * 0.85, shY + u * 0.01);
+  ctx.quadraticCurveTo(cx - shW * 1.25, (shY + hipY) / 2, cx - shW * 1.0, hipY - u * 0.02);
+  ctx.stroke();
+  // 든 팔(오른쪽 → 머리 위 손)
+  ctx.beginPath();
+  ctx.moveTo(cx + shW * 0.8, shY + u * 0.01);
+  ctx.quadraticCurveTo(cx + shW * 1.2, hy - headR * 0.5, handX, handY + headR * 1.3);
+  ctx.stroke();
+  // 든 손
+  ctx.beginPath(); ctx.arc(handX, handY, headR * 0.72, 0, 6.2832); ctx.fill();
+  ctx.restore();
+
+  // 손 위치 타깃 링 — "여기에 손을 들어 뜰채를 잡으세요"
+  ctx.save();
+  ctx.globalAlpha = fade * 0.9;
+  ctx.strokeStyle = "rgba(132,226,191,0.95)";
+  ctx.lineWidth = u * 0.013;
+  ctx.setLineDash([u * 0.03, u * 0.022]);
+  ctx.shadowBlur = u * 0.035; ctx.shadowColor = "rgba(132,226,191,0.9)";
+  ctx.beginPath(); ctx.arc(handX, handY, headR * (1.45 + pulse * 0.3), 0, 6.2832); ctx.stroke();
+  ctx.restore();
 }
 
 // 준비 화면 — "뜰채를 잡으세요" 프롬프트 → 3·2·1 카운트다운
