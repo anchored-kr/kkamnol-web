@@ -85,7 +85,13 @@ html, body {
 .btn--ghost { color: var(--ink); background: rgba(255, 255, 255, 0.08); }
 
 /* ===== Language grid ===== */
-.lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.lang-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px;
+  max-height: 52vh; overflow-y: auto; padding: 2px 4px 2px 2px;
+  scrollbar-width: thin;
+}
+.lang-grid::-webkit-scrollbar { width: 6px; }
+.lang-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 .lang-btn {
   padding: 16px 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
   background: rgba(255, 255, 255, 0.05); color: var(--ink); font-family: inherit; font-size: 17px; font-weight: 800;
