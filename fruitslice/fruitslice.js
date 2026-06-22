@@ -27,7 +27,8 @@ const toastEl = document.getElementById("toast");
 // ---------- 상태 ----------
 let DPR = 1, W = 0, H = 0, MIN = 0;
 let running = false;
-let score = 0, lives = 3, best = Number(localStorage.getItem("kkamnol-slice-best") || 0);
+const START_LIVES = 10;
+let score = 0, lives = START_LIVES, best = Number(localStorage.getItem("kkamnol-slice-best") || 0);
 let fruits = [], bits = []; // bits = 반쪽/즙/점수팝업 파티클
 let lastSpawn = 0, spawnGap = 950, prevT = 0;
 let shakeUntil = 0, shakeMag = 0;
@@ -120,7 +121,7 @@ function handTip(t) {
 
 // ---------- 게임 흐름 ----------
 function start() {
-  score = 0; lives = 3; fruits = []; bits = [];
+  score = 0; lives = START_LIVES; fruits = []; bits = [];
   lastSpawn = performance.now(); spawnGap = 950;
   running = true;
   startScreen.hidden = true;
@@ -140,15 +141,15 @@ function gameOver(reason) {
 
 function syncHud() {
   scoreEl.textContent = score;
-  livesEl.textContent = "❤️".repeat(Math.max(0, lives)) || "💀";
+  livesEl.textContent = "❤️ " + Math.max(0, lives);
 }
 
 // ---------- 스폰 ----------
 function spawn() {
   const bomb = Math.random() < 0.16;
-  const r = MIN * (bomb ? 0.06 : 0.066) * (0.9 + Math.random() * 0.3);
-  const g = 2.0 * H;
-  const f = 0.55 + Math.random() * 0.3; // 정점 높이 비율
+  const r = MIN * (bomb ? 0.105 : 0.115) * (0.92 + Math.random() * 0.22);
+  const g = 1.3 * H;
+  const f = 0.48 + Math.random() * 0.26; // 정점 높이 비율
   const vy0 = -Math.sqrt(2 * g * f * H);
   const x = W * (0.18 + Math.random() * 0.64);
   fruits.push({
@@ -193,8 +194,8 @@ function addHalf(x, y, char, dir = (Math.random() < 0.5 ? -1 : 1)) {
     type: "half", x, y, char,
     vx: dir * (0.18 + Math.random() * 0.2) * H,
     vy: -(0.1 + Math.random() * 0.25) * H,
-    g: 2.0 * H, rot: Math.random() * 6.28, vrot: dir * (3 + Math.random() * 4),
-    r: MIN * 0.05, life: 1.1,
+    g: 1.6 * H, rot: Math.random() * 6.28, vrot: dir * (3 + Math.random() * 4),
+    r: MIN * 0.08, life: 1.1,
   });
 }
 
@@ -225,8 +226,8 @@ function frame(now) {
   else if (now - pointer.t < 120) { tip = { x: pointer.x, y: pointer.y }; src = "pointer"; }
 
   if (tip) bladePts.push({ x: tip.x, y: tip.y, t: now });
-  while (bladePts.length && now - bladePts[0].t > 130) bladePts.shift();
-  if (bladePts.length > 10) bladePts.shift();
+  while (bladePts.length && now - bladePts[0].t > 200) bladePts.shift();
+  if (bladePts.length > 16) bladePts.shift();
 
   // 칼끝 속도
   let speed = 0, a = null, b = null;
@@ -340,19 +341,43 @@ function render(now, src) {
   }
   ctx.globalAlpha = 1;
 
-  // 칼날 궤적
+  // 칼날 잔상 — 휘두를 때 빛나는 스워시(컬러 글로우 + 흰 코어, 꼬리로 갈수록 옅어짐)
   if (bladePts.length >= 2) {
-    for (let i = 1; i < bladePts.length; i++) {
+    const glow = src === "hand" ? "132,226,191" : "255,122,184";
+    const n = bladePts.length;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // 1) 바깥 컬러 글로우 (bloom)
+    ctx.save();
+    ctx.shadowBlur = MIN * 0.05;
+    ctx.shadowColor = `rgba(${glow},0.9)`;
+    for (let i = 1; i < n; i++) {
       const p0 = bladePts[i - 1], p1 = bladePts[i];
-      const k = i / bladePts.length;
-      ctx.strokeStyle = `rgba(255,255,255,${0.15 + k * 0.6})`;
-      ctx.lineWidth = MIN * 0.012 * k + 1;
-      ctx.lineCap = "round";
+      const k = i / (n - 1); // 0(꼬리)~1(칼끝)
+      ctx.strokeStyle = `rgba(${glow},${0.08 + k * 0.4})`;
+      ctx.lineWidth = MIN * 0.04 * (0.25 + k * 0.9);
       ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
     }
-    const tip = bladePts[bladePts.length - 1];
-    ctx.fillStyle = src === "hand" ? "#84e2bf" : "#ff7ab8";
-    ctx.beginPath(); ctx.arc(tip.x, tip.y, MIN * 0.012, 0, 6.2832); ctx.fill();
+    ctx.restore();
+
+    // 2) 흰 코어 (선명한 칼날 자국)
+    for (let i = 1; i < n; i++) {
+      const p0 = bladePts[i - 1], p1 = bladePts[i];
+      const k = i / (n - 1);
+      ctx.strokeStyle = `rgba(255,255,255,${0.06 + k * 0.85})`;
+      ctx.lineWidth = MIN * 0.014 * (0.2 + k * 0.95) + 0.5;
+      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+    }
+
+    // 3) 칼끝 발광 점
+    const tip = bladePts[n - 1];
+    ctx.save();
+    ctx.shadowBlur = MIN * 0.04;
+    ctx.shadowColor = `rgba(${glow},1)`;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(tip.x, tip.y, MIN * 0.014, 0, 6.2832); ctx.fill();
+    ctx.restore();
   }
   ctx.restore();
 
