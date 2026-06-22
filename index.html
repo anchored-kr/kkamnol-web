@@ -37,7 +37,7 @@
       <nav class="nav">
         <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
         <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
-        <a class="nav__cta" href="mailto:hello@kkamnol.xyz">협업 문의</a>
+        <a class="nav__cta" href="#contact">협업 문의</a>
       </nav>
     </header>
 
@@ -49,7 +49,7 @@
         미니게임으로 바이럴을, 브랜드에는 플레이어블 광고를.
       </p>
       <div class="hero__actions">
-        <a class="btn btn--primary" href="mailto:hello@kkamnol.xyz">브랜드 협업 문의 →</a>
+        <a class="btn btn--primary" href="#contact">브랜드 협업 문의 →</a>
       </div>
 
       <section id="works" class="cluster-wrap">
@@ -57,12 +57,72 @@
       </section>
     </main>
 
+    <section id="contact" class="contact">
+      <div class="contact__card">
+        <p class="eyebrow">Work with us</p>
+        <h2 class="contact__title">브랜드 협업 문의</h2>
+        <p class="contact__sub">
+          브랜디드 미니게임 · 플레이어블 광고 · 게이미피케이션 캠페인 —<br />
+          만들고 싶은 걸 편하게 들려주세요. 보통 1~2영업일 안에 답장드려요.
+        </p>
+
+        <form
+          id="contactForm"
+          class="contact-form"
+          action="https://formsubmit.co/contact@anchored.kr"
+          method="POST"
+        >
+          <!-- FormSubmit 설정 -->
+          <input type="hidden" name="_subject" value="[kkamnol.xyz] 새 브랜드 협업 문의" />
+          <input type="hidden" name="_template" value="table" />
+          <input type="hidden" name="_captcha" value="false" />
+          <input type="hidden" name="_next" value="https://kkamnol.xyz/?sent=1#contact" />
+          <!-- 스팸봇 트랩(사람에겐 안 보임) -->
+          <input type="text" name="_honey" class="contact-form__honey" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+          <div class="contact-form__row">
+            <label class="field">
+              <span class="field__label">이름 · 회사</span>
+              <input type="text" name="이름·회사" required placeholder="홍길동 / 브랜드명" />
+            </label>
+            <label class="field">
+              <span class="field__label">이메일</span>
+              <input type="email" name="이메일" required placeholder="you@company.com" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field__label">문의 유형</span>
+            <select name="문의유형">
+              <option>브랜디드 미니게임</option>
+              <option>플레이어블 광고 제작</option>
+              <option>게이미피케이션 캠페인</option>
+              <option>기타 · 아직 잘 모르겠어요</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">내용</span>
+            <textarea
+              name="내용"
+              rows="5"
+              required
+              placeholder="어떤 걸 만들고 싶으신가요? 일정·예산 범위가 있다면 함께 적어주시면 좋아요."
+            ></textarea>
+          </label>
+
+          <button class="btn btn--primary contact-form__submit" type="submit">문의 보내기 →</button>
+          <p class="contact-form__status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </section>
+
     <footer class="site-footer">
       <span>© 2026 Kkamnol Interactive</span>
       <span class="site-footer__links">
         <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
         <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
-        <a href="mailto:hello@kkamnol.xyz">Contact</a>
+        <a href="#contact">Contact</a>
       </span>
     </footer>
 
@@ -85,5 +145,6 @@
     </div>
 
     <script src="/games.js" defer></script>
+    <script src="/contact.js" defer></script>
   </body>
 </html>
