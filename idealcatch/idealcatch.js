@@ -678,12 +678,13 @@ function applyLang() {
   document.getElementById("linkBtn").textContent = t.shareLink;
   document.getElementById("againBtn").textContent = t.again;
 }
+const FLAGS = { ko:"🇰🇷", en:"🇺🇸", ja:"🇯🇵", zh:"🇨🇳", es:"🇪🇸", pt:"🇧🇷", fr:"🇫🇷", de:"🇩🇪", it:"🇮🇹", ru:"🇷🇺", tr:"🇹🇷", id:"🇮🇩", vi:"🇻🇳", th:"🇹🇭", ar:"🇸🇦", hi:"🇮🇳" };
 function buildLangGrid() {
   const grid = document.getElementById("langGrid");
   grid.innerHTML = "";
   for (const code of Object.keys(I18N)) {
     const b = document.createElement("button");
-    b.className = "lang-btn"; b.textContent = I18N[code].nat;
+    b.className = "lang-btn"; b.textContent = (FLAGS[code] ? FLAGS[code] + "  " : "") + I18N[code].nat;
     b.onclick = () => { lang = code; applyLang(); langScreen.hidden = true; startScreen.hidden = false; };
     grid.appendChild(b);
   }

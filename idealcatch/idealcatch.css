@@ -113,3 +113,67 @@ html, body {
   padding: 10px 16px; border-radius: 999px; max-width: 86vw; text-align: center;
 }
 .toast[hidden] { display: none; }
+
+/* ===== 귀여운 시작/언어 화면 ===== */
+.overlay--cute {
+  background: linear-gradient(135deg, #ffd9ec 0%, #ffe7d3 48%, #e6dcff 100%);
+  background-size: 200% 200%;
+  animation: cuteShift 11s ease-in-out infinite;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+@keyframes cuteShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+/* 둥둥 떠다니는 하트 */
+.floaties { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.floaties span {
+  position: absolute; font-size: clamp(24px, 5vw, 42px); opacity: 0.9;
+  animation: floatUp 7s ease-in-out infinite;
+  filter: drop-shadow(0 5px 9px rgba(255, 120, 170, 0.28));
+}
+.floaties span:nth-child(1) { left: 7%;  top: 16%; animation-delay: 0s; }
+.floaties span:nth-child(2) { left: 85%; top: 11%; animation-delay: 1.1s; font-size: 1.5em; }
+.floaties span:nth-child(3) { left: 14%; top: 74%; animation-delay: 2.3s; }
+.floaties span:nth-child(4) { left: 80%; top: 70%; animation-delay: 0.6s; }
+.floaties span:nth-child(5) { left: 48%; top: 7%;  animation-delay: 1.8s; }
+.floaties span:nth-child(6) { left: 62%; top: 84%; animation-delay: 3.1s; }
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0) rotate(-7deg); }
+  50%      { transform: translateY(-18px) rotate(9deg); }
+}
+
+.overlay--cute .panel {
+  position: relative; z-index: 1; color: #45304a;
+  background: rgba(255, 255, 255, 0.95);
+  border: 3px solid #ffc7e3;
+  box-shadow: 0 24px 60px rgba(255, 120, 170, 0.42), inset 0 0 0 5px rgba(255, 255, 255, 0.7);
+  animation: cutePop 0.5s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes cutePop { 0% { transform: scale(0.8) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+.overlay--cute .eyebrow { color: #ff5fa2; }
+.overlay--cute .panel h1 { color: #ff3d8b; text-shadow: 0 2px 0 #ffd7e9, 0 3px 10px rgba(255, 95, 162, 0.25); }
+.overlay--cute .panel .sub { color: #6b4a78; }
+.overlay--cute .panel .how { color: #9a7aa6; }
+.overlay--cute .panel .hint { color: #bb9ec8; }
+
+/* 캔디 버튼 (눌리는 3D) */
+.overlay--cute .btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #ff9ecb, #ff5fa2);
+  box-shadow: 0 7px 0 #e84b8d, 0 14px 22px rgba(255, 95, 162, 0.4);
+}
+.overlay--cute .btn--primary:active { transform: translateY(4px); box-shadow: 0 3px 0 #e84b8d, 0 7px 14px rgba(255, 95, 162, 0.4); }
+.overlay--cute .btn--ghost {
+  color: #7a5a86; background: #f3e9ff; box-shadow: 0 6px 0 #ddc9f2;
+}
+.overlay--cute .btn--ghost:active { transform: translateY(3px); box-shadow: 0 2px 0 #ddc9f2; }
+
+/* 큐트 언어 버튼 (국기 + 파스텔) */
+.overlay--cute .lang-btn {
+  background: #fff0f7; border: 2px solid #ffd0e6; color: #6b4a78;
+  border-radius: 18px; box-shadow: 0 4px 0 #ffd9ec;
+  transition: transform .12s, background .12s, border-color .12s, box-shadow .12s;
+}
+.overlay--cute .lang-btn:hover { background: #ffe3f1; border-color: #ff9ecb; }
+.overlay--cute .lang-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #ffd9ec; }
+.overlay--cute .lang-grid::-webkit-scrollbar-thumb { background: #ffc0de; }
