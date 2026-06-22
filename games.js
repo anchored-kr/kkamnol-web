@@ -8,10 +8,20 @@ const GRADIENTS = {
   sky: "linear-gradient(145deg,#d6ecff,#8fc2ff)",
   peach: "linear-gradient(145deg,#ffe3c7,#ffb27a)",
   lavender: "linear-gradient(145deg,#e7dbff,#b89cff)",
+  grass: "linear-gradient(145deg,#d6f5c8,#5cc46a)",
   ghost: "linear-gradient(145deg,#f4f4f6,#e8e8ec)",
 };
 
 const GAMES = [
+  {
+    id: "goalkeeper",
+    title: "월드컵 골키퍼",
+    en: "World Cup Goalkeeper",
+    emoji: "🧤",
+    status: "live",
+    url: "/goalkeeper",
+    color: "grass",
+  },
   {
     id: "grandprix",
     title: "제목학원 그랑프리",
