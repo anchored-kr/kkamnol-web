@@ -161,7 +161,20 @@ function ensureAudio() {
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.5;
   masterGain.connect(audioCtx.destination);
+  // iOS 언락: 무음 버퍼 1회 재생(컨텍스트 워밍업)
+  try {
+    const b = audioCtx.createBuffer(1, 1, 22050);
+    const s = audioCtx.createBufferSource();
+    s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+  } catch {}
 }
+// 모바일 오디오 언락 — 첫 탭(언어 선택 등)부터 컨텍스트 생성·재개(반드시 제스처 안에서)
+function unlockAudio() {
+  ensureAudio();
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+}
+addEventListener("pointerdown", unlockAudio, { passive: true });
+addEventListener("touchend", unlockAudio, { passive: true });
 function tone(freq, t0, dur, type = "sine", peak = 0.3) {
   const o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.type = type; o.frequency.value = freq; o.connect(g); g.connect(masterGain);
@@ -835,6 +848,7 @@ function buildLangGrid() {
 }
 
 document.getElementById("startBtn").addEventListener("click", async () => {
+  unlockAudio(); // 카메라 await 전에 제스처 안에서 오디오 먼저 언락(iOS 묵음 방지)
   const btn = document.getElementById("startBtn");
   btn.disabled = true;
   try {
