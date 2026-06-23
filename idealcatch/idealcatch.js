@@ -132,14 +132,21 @@ let pointer = { x: 0, y: 0, t: -9999 };
 let usingHandT = -9999;
 
 // ---------- 캔버스 ----------
-function resize() {
+let pendingResize = false;
+function applyResize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = canvas.width = Math.floor(innerWidth * DPR);
-  H = canvas.height = Math.floor(innerHeight * DPR);
-  MIN = Math.min(W, H);
+  const w = Math.floor(innerWidth * DPR), h = Math.floor(innerHeight * DPR);
+  if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵(불필요한 캔버스 리셋 방지)
+  W = canvas.width = w; H = canvas.height = h; MIN = Math.min(W, H);
+}
+function resize() {
+  // 녹화 중엔 캔버스 크기를 건드리지 않음 — 모바일 주소창 토글 등으로 캔버스를 리셋하면
+  // captureStream 비디오 트랙이 얼어 녹화 영상이 중간에 멈춤. 녹화 끝나면 반영.
+  if (rec && rec.state === "recording") { pendingResize = true; return; }
+  applyResize();
 }
 addEventListener("resize", resize);
-resize();
+applyResize();
 
 // ---------- 포인터 폴백 ----------
 function onPointer(e) { pointer.x = e.clientX * DPR; pointer.y = e.clientY * DPR; pointer.t = performance.now(); }
@@ -201,7 +208,7 @@ function startRecording() {
     rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 6_000_000 } : undefined);
     recChunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
-    rec.start();
+    rec.start(1000); // 1초마다 청크 플러시(중간 끊김에 강함)
     recEl.hidden = false;
     return true;
   } catch (e) { return false; }
@@ -210,7 +217,10 @@ function stopRecording() {
   return new Promise((res) => {
     recEl.hidden = true;
     if (!rec || rec.state === "inactive") return res(null);
-    rec.onstop = () => res(new Blob(recChunks, { type: (recMime || "video/webm").split(";")[0] }));
+    rec.onstop = () => {
+      if (pendingResize) { pendingResize = false; applyResize(); } // 녹화 중 보류된 리사이즈 반영
+      res(new Blob(recChunks, { type: (recMime || "video/webm").split(";")[0] }));
+    };
     rec.stop();
   });
 }
