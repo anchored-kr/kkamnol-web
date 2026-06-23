@@ -279,10 +279,10 @@ function spawnWord() {
   const w = ctx.measureText(traitLabel(key)).width + fs * 1.7;
   const h = fs * 2.0;
   // 물고기처럼 팔딱 — 아래에서 위로 포물선으로 튀어오름
-  const g = 1.5 * H, f = 0.42 + Math.random() * 0.3;
+  const g = 0.8 * H, f = 0.42 + Math.random() * 0.3; // 중력↓ → 더 천천히 뜨고 떨어짐(정점 높이는 유지)
   words.push({
     key, x: W * (0.18 + Math.random() * 0.64), y: H + h * 0.5,
-    vx: (Math.random() - 0.5) * 0.22 * H, vy: -Math.sqrt(2 * g * f * H), g,
+    vx: (Math.random() - 0.5) * 0.16 * H, vy: -Math.sqrt(2 * g * f * H), g,
     w, h, fs, hitR: Math.max(w, h) * 0.5, wob: Math.random() * 6.28, vwob: 7 + Math.random() * 5,
   });
 }
