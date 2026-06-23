@@ -1,9 +1,14 @@
+/* ===========================================================================
+   이상형 캐치캐치 — 깜놀 시그니처 룩북 적용 (docs/signature-lookbook.md)
+   잉크 베이스 + 옐로 시그널 + 쇼크 핑크(반전 전용) + Pretendard 단일 패밀리
+   =========================================================================== */
 :root {
-  --bg: #0a0d0a;
-  --ink: #f4f4f6;
-  --pink: #ff7ab8;
-  --mint: #84e2bf;
-  --gold: #ffd23f;
+  --ink: #111114;
+  --ink-2: #1b1b20;     /* 패널 표면 */
+  --paper: #f7f7f2;
+  --signal: #e8ff2e;    /* 1차 브랜드 액센트 */
+  --shock: #ff2d6f;     /* 반전(깜놀 모먼트) 전용 */
+  --mute: #6b6b70;
 }
 
 * { box-sizing: border-box; }
@@ -12,9 +17,9 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: "Pretendard", system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
 }
@@ -30,59 +35,61 @@ html, body {
   pointer-events: none;
 }
 .hud-top a { pointer-events: auto; }
-.brand { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--ink); font-weight: 800; font-size: 15px; opacity: 0.85; }
+.brand { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--paper); font-weight: 900; font-size: 15px; opacity: 0.9; }
 .brand__mark { font-size: 18px; }
+.brand__name { color: var(--signal); }
 
 .rec {
-  margin-left: auto; font-family: "Inter", sans-serif; font-weight: 800; font-size: 12px;
-  color: #ff5252; letter-spacing: 1px; animation: blink 1.1s steps(1) infinite;
+  margin-left: auto; font-weight: 900; font-size: 12px;
+  color: var(--shock); letter-spacing: 1px; animation: blink 1.1s steps(1) infinite;
 }
 @keyframes blink { 50% { opacity: 0.25; } }
 
 .mode-pill {
   position: fixed; top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
-  font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.6);
-  background: rgba(0, 0, 0, 0.35); padding: 4px 10px; border-radius: 999px; pointer-events: none;
+  font-size: 11px; font-weight: 700; color: rgba(247, 247, 242, 0.7);
+  background: rgba(0, 0, 0, 0.4); padding: 4px 10px; border-radius: 999px; pointer-events: none;
 }
 
 .hud-bottom {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom));
-  font-size: 11px; color: rgba(255, 255, 255, 0.45); pointer-events: none;
+  font-size: 11px; color: rgba(247, 247, 242, 0.45); pointer-events: none;
 }
-.hud-bottom a { color: rgba(255, 255, 255, 0.6); text-decoration: none; margin-left: 12px; pointer-events: auto; }
+.hud-bottom a { color: rgba(247, 247, 242, 0.65); text-decoration: none; margin-left: 12px; pointer-events: auto; }
 .links { display: flex; }
 
 /* ===== Overlays ===== */
 .overlay {
   position: fixed; inset: 0; z-index: 10;
   display: grid; place-items: center; padding: 24px;
-  background: radial-gradient(120% 90% at 50% 30%, rgba(10, 13, 10, 0.55), rgba(10, 13, 10, 0.92));
+  background: radial-gradient(120% 90% at 50% 30%, rgba(17, 17, 20, 0.6), rgba(17, 17, 20, 0.94));
   backdrop-filter: blur(4px);
 }
 .overlay[hidden] { display: none; }
 
 .panel {
   width: min(440px, 92vw); text-align: center;
-  background: rgba(20, 22, 24, 0.72); border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24px; padding: 30px 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  background: var(--ink-2); border: 1px solid rgba(247, 247, 242, 0.1);
+  border-radius: 20px; padding: 30px 26px; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
 }
-.eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--mint); }
-.panel h1 { margin: 0 0 12px; font-size: clamp(28px, 7vw, 40px); font-weight: 900; line-height: 1.08; }
-.panel .sub { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: rgba(255, 255, 255, 0.92); }
-.panel .how { margin: 0 0 22px; font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, 0.7); }
-.panel .hint { margin: 16px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.45); }
+.eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: var(--signal); }
+.panel h1 { margin: 0 0 12px; font-size: clamp(28px, 7vw, 40px); font-weight: 900; line-height: 1.08; color: var(--paper); }
+.panel .sub { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: rgba(247, 247, 242, 0.92); }
+.panel .how { margin: 0 0 22px; font-size: 14px; line-height: 1.5; color: rgba(247, 247, 242, 0.68); }
+.panel .hint { margin: 16px 0 0; font-size: 12px; color: rgba(247, 247, 242, 0.45); }
 
 .btn {
   display: block; width: 100%; margin: 8px 0 0; padding: 15px 18px;
-  border: 0; border-radius: 16px; font-family: inherit; font-size: 16px; font-weight: 800;
-  cursor: pointer; transition: transform 0.12s ease, filter 0.12s ease;
+  border: 0; border-radius: 14px; font-family: inherit; font-size: 16px; font-weight: 900;
+  cursor: pointer; transition: transform 0.1s ease, filter 0.1s ease;
 }
 .btn:active { transform: scale(0.97); }
-.btn--primary { color: #1a0e16; background: linear-gradient(135deg, #ffd1e8, #ff7ab8); box-shadow: 0 10px 30px rgba(255, 122, 184, 0.35); }
-.btn--primary:hover { filter: brightness(1.05); }
-.btn--ghost { color: var(--ink); background: rgba(255, 255, 255, 0.08); }
+/* 1차 CTA = 시그널 옐로 + 잉크 글자 (룩북 고대비) */
+.btn--primary { color: var(--ink); background: var(--signal); }
+.btn--primary:hover { filter: brightness(1.04); }
+.btn--ghost { color: var(--paper); background: rgba(247, 247, 242, 0.08); }
 
 /* ===== Language grid ===== */
 .lang-grid {
@@ -91,44 +98,41 @@ html, body {
   scrollbar-width: thin;
 }
 .lang-grid::-webkit-scrollbar { width: 6px; }
-.lang-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+.lang-grid::-webkit-scrollbar-thumb { background: rgba(247, 247, 242, 0.2); border-radius: 3px; }
 .lang-btn {
-  padding: 16px 12px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05); color: var(--ink); font-family: inherit; font-size: 17px; font-weight: 800;
-  cursor: pointer; transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s;
+  padding: 16px 12px; border: 1px solid rgba(247, 247, 242, 0.14); border-radius: 14px;
+  background: rgba(247, 247, 242, 0.05); color: var(--paper); font-family: inherit; font-size: 17px; font-weight: 700;
+  cursor: pointer; transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s;
 }
-.lang-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--mint); }
+.lang-btn:hover { background: rgba(247, 247, 242, 0.1); border-color: var(--signal); }
 .lang-btn:active { transform: scale(0.96); }
 
 /* ===== Share video ===== */
 .share-vid {
-  width: 100%; max-height: 46vh; border-radius: 16px; background: #000;
-  margin: 8px 0 14px; object-fit: contain;
+  width: 100%; max-height: 46vh; border-radius: 14px; background: #000;
+  margin: 8px 0 14px; object-fit: contain; border: 2px solid var(--signal);
 }
 
 /* ===== Toast ===== */
 .toast {
   position: fixed; bottom: 16%; left: 50%; transform: translateX(-50%); z-index: 20;
-  background: rgba(0, 0, 0, 0.78); color: #fff; font-size: 13px; font-weight: 700;
+  background: rgba(0, 0, 0, 0.82); color: var(--paper); font-size: 13px; font-weight: 700;
   padding: 10px 16px; border-radius: 999px; max-width: 86vw; text-align: center;
 }
 .toast[hidden] { display: none; }
 
-/* ===== 귀여운 시작/언어 화면 ===== */
+/* ===== 시작/언어 화면 — 잉크 베이스 + 떠다니는 하트(테마) ===== */
 .overlay--cute {
-  background: linear-gradient(135deg, #ffd9ec 0%, #ffe7d3 48%, #e6dcff 100%);
-  background-size: 200% 200%;
-  animation: cuteShift 11s ease-in-out infinite;
+  background: radial-gradient(130% 100% at 50% 18%, #1d1d23 0%, var(--ink) 70%);
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-@keyframes cuteShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
-/* 둥둥 떠다니는 하트 */
+/* 둥둥 떠다니는 하트 (로맨스 테마 유지) */
 .floaties { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .floaties span {
-  position: absolute; font-size: clamp(24px, 5vw, 42px); opacity: 0.9;
+  position: absolute; font-size: clamp(24px, 5vw, 42px); opacity: 0.85;
   animation: floatUp 7s ease-in-out infinite;
-  filter: drop-shadow(0 5px 9px rgba(255, 120, 170, 0.28));
+  filter: drop-shadow(0 5px 12px rgba(255, 45, 111, 0.35));
 }
 .floaties span:nth-child(1) { left: 7%;  top: 16%; animation-delay: 0s; }
 .floaties span:nth-child(2) { left: 85%; top: 11%; animation-delay: 1.1s; font-size: 1.5em; }
@@ -141,39 +145,12 @@ html, body {
   50%      { transform: translateY(-18px) rotate(9deg); }
 }
 
+/* 패널 — 잉크 표면 + 시그널 보더, 스냅 등장(룩북 모션: 페이드 금지) */
 .overlay--cute .panel {
-  position: relative; z-index: 1; color: #45304a;
-  background: rgba(255, 255, 255, 0.95);
-  border: 3px solid #ffc7e3;
-  box-shadow: 0 24px 60px rgba(255, 120, 170, 0.42), inset 0 0 0 5px rgba(255, 255, 255, 0.7);
-  animation: cutePop 0.5s cubic-bezier(.34, 1.56, .64, 1);
+  position: relative; z-index: 1;
+  background: var(--ink-2);
+  border: 2px solid var(--signal);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  animation: cutePop 0.32s cubic-bezier(.34, 1.56, .64, 1);
 }
-@keyframes cutePop { 0% { transform: scale(0.8) translateY(10px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-
-.overlay--cute .eyebrow { color: #ff5fa2; }
-.overlay--cute .panel h1 { color: #ff3d8b; text-shadow: 0 2px 0 #ffd7e9, 0 3px 10px rgba(255, 95, 162, 0.25); }
-.overlay--cute .panel .sub { color: #6b4a78; }
-.overlay--cute .panel .how { color: #9a7aa6; }
-.overlay--cute .panel .hint { color: #bb9ec8; }
-
-/* 캔디 버튼 (눌리는 3D) */
-.overlay--cute .btn--primary {
-  color: #fff;
-  background: linear-gradient(135deg, #ff9ecb, #ff5fa2);
-  box-shadow: 0 7px 0 #e84b8d, 0 14px 22px rgba(255, 95, 162, 0.4);
-}
-.overlay--cute .btn--primary:active { transform: translateY(4px); box-shadow: 0 3px 0 #e84b8d, 0 7px 14px rgba(255, 95, 162, 0.4); }
-.overlay--cute .btn--ghost {
-  color: #7a5a86; background: #f3e9ff; box-shadow: 0 6px 0 #ddc9f2;
-}
-.overlay--cute .btn--ghost:active { transform: translateY(3px); box-shadow: 0 2px 0 #ddc9f2; }
-
-/* 큐트 언어 버튼 (국기 + 파스텔) */
-.overlay--cute .lang-btn {
-  background: #fff0f7; border: 2px solid #ffd0e6; color: #6b4a78;
-  border-radius: 18px; box-shadow: 0 4px 0 #ffd9ec;
-  transition: transform .12s, background .12s, border-color .12s, box-shadow .12s;
-}
-.overlay--cute .lang-btn:hover { background: #ffe3f1; border-color: #ff9ecb; }
-.overlay--cute .lang-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #ffd9ec; }
-.overlay--cute .lang-grid::-webkit-scrollbar-thumb { background: #ffc0de; }
+@keyframes cutePop { 0% { transform: scale(0.86); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }

@@ -100,6 +100,10 @@ function inkFor(hex) {
   return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#1a0e16" : "#fff";
 }
 
+// ---------- 룩북 시그니처 토큰 (docs/signature-lookbook.md) ----------
+const INK = "#111114", PAPER = "#F7F7F2", SIGNAL = "#E8FF2E", SHOCK = "#FF2D6F", MUTE = "#6B6B70";
+const FONT = '"Pretendard", system-ui, sans-serif';
+
 // ---------- DOM ----------
 const video = document.getElementById("cam");
 const canvas = document.getElementById("stage");
@@ -120,6 +124,7 @@ let words = [], collected = [], effects = [];
 let resultPrimary = null, finishing = false, lastSpawn = 0;
 let grabUntil = 0, grabColor = "#fff";
 let countdownStart = 0, lastTick = -1, goFlashUntil = 0;
+let flashUntil = 0, shakeUntil = 0; // ★ 깜놀 모먼트: 쇼크 핑크 플래시 + 스크린 셰이크
 
 let handLandmarker = null, camOn = false, lastVideoTime = -1;
 let bladePts = [];
@@ -160,8 +165,21 @@ function tone(freq, t0, dur, type = "sine", peak = 0.3) {
   o.start(now); o.stop(now + dur + 0.05);
 }
 const playCatch = () => { ensureAudio(); tone(523, 0, 0.1, "sine", 0.3); tone(784, 0.05, 0.13, "sine", 0.28); }; // 잡는 "팝"
-const playComplete = () => { ensureAudio(); [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.32, "triangle", 0.3)); };
-const playOutro = () => { ensureAudio(); tone(784, 0, 0.55, "sine", 0.35); tone(1175, 0.13, 0.7, "sine", 0.3); tone(1568, 0.26, 0.95, "sine", 0.25); };
+// 🔑 깜놀 스팅어 — 모든 깜놀 게임 공통 오디오 로고(룩북): 상승 whoosh → 스냅 → 밝은 벨
+function playKkamnolSting() {
+  ensureAudio();
+  const t0 = audioCtx.currentTime;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sawtooth"; o.connect(g); g.connect(masterGain);
+  o.frequency.setValueAtTime(260, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + 0.17);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.22, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+  o.start(t0); o.stop(t0 + 0.24);
+  tone(660, 0.16, 0.05, "square", 0.3);    // 스냅(팝)
+  tone(1320, 0.19, 0.5, "triangle", 0.34); // 밝은 벨(반전 확정)
+  tone(1976, 0.21, 0.45, "sine", 0.2);
+}
+// 엔드 스팅어 — 3노트 "깜-놀-!" 모티프(룩북). 모든 게임 영상 끝.
+const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
 let rec = null, recChunks = [], recMime = "";
@@ -257,7 +275,7 @@ function spawnWord() {
   if (!avail.length) return;
   const key = avail[(Math.random() * avail.length) | 0];
   const fs = MIN * 0.05;
-  ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
+  ctx.font = `800 ${fs}px "Pretendard", system-ui, sans-serif`;
   const w = ctx.measureText(traitLabel(key)).width + fs * 1.7;
   const h = fs * 2.0;
   // 물고기처럼 팔딱 — 아래에서 위로 포물선으로 튀어오름
@@ -305,7 +323,10 @@ async function finishGame() {
   words = []; effects = [];
   resultPrimary = collected[(Math.random() * collected.length) | 0];
   phase = "result"; phaseStart = performance.now();
-  playComplete();
+  // ★ 깜놀 모먼트 — 쇼크 핑크 플래시 + 스크린 셰이크 + 깜놀 스팅어 (룩북 3번 비트)
+  const tnow = performance.now();
+  flashUntil = tnow + 320; shakeUntil = tnow + 380;
+  playKkamnolSting();
   await wait(4600);
   phase = "outro"; phaseStart = performance.now();
   playOutro();
@@ -416,7 +437,7 @@ function roundRect(x, y, w, h, r) {
 function pill(cx, cy, label, fs, color, scale = 1, rot = 0) {
   ctx.save();
   ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(scale, scale);
-  ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
+  ctx.font = `800 ${fs}px "Pretendard", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   const w = ctx.measureText(label).width + fs * 1.5, h = fs * 1.9;
   roundRect(-w / 2, -h / 2, w, h, h / 2);
@@ -434,11 +455,34 @@ function fitFont(text, base, maxW, weight, fam) {
   return w > maxW ? base * maxW / w : base;
 }
 
+// 깜놀 프레임 — 시그널 옐로 보더 + 코너 워드마크. 캔버스에 그려 녹화 클립도 한눈에 깜놀 식별(룩북 5장)
+function drawKkamnolFrame(now) {
+  const pad = Math.max(7, MIN * 0.013), r = MIN * 0.03;
+  ctx.save();
+  ctx.strokeStyle = SIGNAL; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(2, MIN * 0.0055);
+  roundRect(pad, pad, W - pad * 2, H - pad * 2, r); ctx.stroke();
+  ctx.globalAlpha = 1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = `900 ${MIN * 0.03}px ${FONT}`; ctx.fillStyle = SIGNAL;
+  ctx.fillText("깜놀", pad * 2, H - pad * 2.1);
+  ctx.restore();
+}
+
 // ---------- 렌더 ----------
 function render(now, src) {
-  ctx.fillStyle = "#0a0d0a";
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H); // 흔들려도 가장자리 메움
+  const sh = now < shakeUntil ? (shakeUntil - now) / 380 : 0;
+  ctx.save();
+  if (sh > 0) { const m = MIN * 0.018 * sh; ctx.translate((Math.random() * 2 - 1) * m, (Math.random() * 2 - 1) * m); }
+  renderScene(now, src);
+  ctx.restore();
+  if (now < flashUntil) { // ★ 쇼크 핑크 플래시
+    ctx.save(); ctx.globalAlpha = Math.min(1, (flashUntil - now) / 320) * 0.55;
+    ctx.fillStyle = SHOCK; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
+  drawKkamnolFrame(now);
+}
 
+function renderScene(now, src) {
   if (phase === "outro") { renderOutro(now); return; }
 
   const tr = camOn ? camTransform() : null;
@@ -446,7 +490,7 @@ function render(now, src) {
     ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
     ctx.drawImage(video, tr.ox, tr.oy, tr.dw, tr.dh);
     ctx.restore();
-    ctx.fillStyle = (phase === "result" || phase === "ready") ? "rgba(10,13,10,0.3)" : "rgba(10,13,10,0.5)"; // 결과·준비 땐 얼굴 더 밝게
+    ctx.fillStyle = (phase === "result" || phase === "ready") ? "rgba(17,17,20,0.3)" : "rgba(17,17,20,0.5)"; // 결과·준비 땐 얼굴 더 밝게
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -461,9 +505,9 @@ function render(now, src) {
   if (phase === "play") renderNet(now, src);
   if (now < goFlashUntil) {
     ctx.save(); ctx.globalAlpha = Math.min(1, (goFlashUntil - now) / 350);
-    ctx.fillStyle = "#84e2bf"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.shadowBlur = MIN * 0.05; ctx.shadowColor = "rgba(132,226,191,0.9)";
-    ctx.font = `900 ${MIN * 0.13}px "Inter", sans-serif`;
+    ctx.fillStyle = SIGNAL; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.shadowBlur = MIN * 0.05; ctx.shadowColor = "rgba(232,255,46,0.9)";
+    ctx.font = `900 ${MIN * 0.13}px "Pretendard", system-ui, sans-serif`;
     ctx.fillText(tx("go"), W / 2, H * 0.4);
     ctx.restore();
   }
@@ -487,12 +531,12 @@ function renderEffects() {
 // 상단 중앙 정렬 트레이
 function renderTray() {
   const fs = MIN * 0.032, bh = fs * 1.85, gap = MIN * 0.018;
-  ctx.font = `800 ${fs}px "Noto Sans KR", system-ui, sans-serif`;
+  ctx.font = `800 ${fs}px "Pretendard", system-ui, sans-serif`;
   const widths = collected.map((k) => ctx.measureText(traitLabel(k)).width + fs * 1.5);
   const total = widths.reduce((a, b) => a + b + gap, -gap);
 
   // 카운트 (중앙)
-  ctx.font = `900 ${MIN * 0.04}px "Inter", sans-serif`;
+  ctx.font = `900 ${MIN * 0.04}px "Pretendard", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillStyle = "#fff";
   ctx.fillText(`${collected.length} / 5`, W / 2, MIN * 0.055);
@@ -526,14 +570,14 @@ function renderResult(now) {
   ctx.save();
   ctx.translate(W / 2, H / 2); ctx.scale(0.94 + 0.06 * t, 0.94 + 0.06 * t); ctx.translate(-W / 2, -H / 2);
 
-  const fam = '"Noto Sans KR", system-ui, sans-serif';
+  const fam = '"Pretendard", system-ui, sans-serif';
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
 
   // 배경 투명 — 얼굴이 비치도록 핑크 글로우 테두리만
   roundRect(cx, cy, cw, ch, MIN * 0.06);
   ctx.save();
-  ctx.strokeStyle = "rgba(255,150,200,0.92)"; ctx.lineWidth = MIN * 0.006;
-  ctx.shadowBlur = MIN * 0.03; ctx.shadowColor = "rgba(255,90,160,0.7)";
+  ctx.strokeStyle = "rgba(255,45,111,0.95)"; ctx.lineWidth = MIN * 0.007; // 쇼크 핑크 — 반전 전용
+  ctx.shadowBlur = MIN * 0.04; ctx.shadowColor = "rgba(255,45,111,0.8)";
   ctx.stroke();
   ctx.restore();
 
@@ -587,8 +631,8 @@ function renderResult(now) {
   ctx.font = `700 ${MIN * 0.04}px ${fam}`;
   ctx.fillText(T().resultAll, W / 2, cy + ch * 0.71);
 
-  ctx.fillStyle = "#9af0d0";
-  ctx.font = `800 ${MIN * 0.032}px "Inter", sans-serif`;
+  ctx.fillStyle = SIGNAL;
+  ctx.font = `800 ${MIN * 0.032}px "Pretendard", system-ui, sans-serif`;
   ctx.fillText("kkamnol.xyz", W / 2, cy + ch * 0.86);
   ctx.shadowBlur = 0;
   ctx.restore();
@@ -598,23 +642,25 @@ function renderResult(now) {
 function renderOutro(now) {
   const el = (now - phaseStart) / 1000;
   const fade = Math.min(1, el / 0.4) * Math.min(1, Math.max(0, (2.3 - el) / 0.4));
-  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
   ctx.globalAlpha = fade;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
 
   // CTA (언어별)
-  ctx.fillStyle = "#84e2bf";
-  ctx.font = `800 ${MIN * 0.045}px "Noto Sans KR", system-ui, sans-serif`;
-  ctx.fillText(T().outroCta, W / 2, H / 2 - MIN * 0.2);
+  ctx.fillStyle = SIGNAL;
+  ctx.font = `800 ${MIN * 0.045}px ${FONT}`;
+  ctx.fillText(T().outroCta, W / 2, H / 2 - MIN * 0.22);
 
-  ctx.font = `${MIN * 0.12}px "Noto Color Emoji", "Apple Color Emoji", sans-serif`;
-  ctx.fillText("😮", W / 2, H / 2 - MIN * 0.04);
-  ctx.fillStyle = "#fff";
-  ctx.font = `900 ${MIN * 0.1}px "Inter", sans-serif`;
-  ctx.fillText("Kkamnol", W / 2, H / 2 + MIN * 0.08);
-  ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.font = `700 ${MIN * 0.034}px "Inter", sans-serif`;
-  ctx.fillText("kkamnol.xyz", W / 2, H / 2 + MIN * 0.17);
+  // 워드마크 — 깜놀(시그널 옐로) + KKAMNOL(페이퍼)
+  ctx.fillStyle = SIGNAL;
+  ctx.font = `900 ${MIN * 0.16}px ${FONT}`;
+  ctx.fillText("깜놀", W / 2, H / 2 + MIN * 0.01);
+  ctx.fillStyle = PAPER;
+  ctx.font = `900 ${MIN * 0.058}px ${FONT}`;
+  ctx.fillText("KKAMNOL", W / 2, H / 2 + MIN * 0.11);
+  ctx.fillStyle = "rgba(247,247,242,0.55)";
+  ctx.font = `700 ${MIN * 0.034}px ${FONT}`;
+  ctx.fillText("kkamnol.xyz", W / 2, H / 2 + MIN * 0.18);
   ctx.globalAlpha = 1;
 }
 
@@ -666,10 +712,10 @@ function renderPoseGuide(now) {
   // 손 위치 타깃 링 — "여기에 손을 들어 뜰채를 잡으세요"
   ctx.save();
   ctx.globalAlpha = fade * 0.9;
-  ctx.strokeStyle = "rgba(132,226,191,0.95)";
+  ctx.strokeStyle = "rgba(232,255,46,0.95)";
   ctx.lineWidth = u * 0.013;
   ctx.setLineDash([u * 0.03, u * 0.022]);
-  ctx.shadowBlur = u * 0.035; ctx.shadowColor = "rgba(132,226,191,0.9)";
+  ctx.shadowBlur = u * 0.035; ctx.shadowColor = "rgba(232,255,46,0.9)";
   ctx.beginPath(); ctx.arc(handX, handY, headR * (1.45 + pulse * 0.3), 0, 6.2832); ctx.stroke();
   ctx.restore();
 }
@@ -678,7 +724,7 @@ function renderPoseGuide(now) {
 function renderReady(now) {
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   if (!countdownStart) {
-    const fam = '"Noto Sans KR", system-ui, sans-serif';
+    const fam = '"Pretendard", system-ui, sans-serif';
     ctx.fillStyle = "#fff";
     ctx.shadowBlur = MIN * 0.025; ctx.shadowColor = "rgba(0,0,0,0.7)";
     ctx.font = `800 ${fitFont(tx("grabNet"), MIN * 0.052, W * 0.88, 800, fam)}px ${fam}`;
@@ -693,7 +739,7 @@ function renderReady(now) {
       ctx.globalAlpha = Math.min(1, within * 2.4);
       ctx.fillStyle = "#fff";
       ctx.shadowBlur = MIN * 0.06; ctx.shadowColor = "rgba(255,122,184,0.9)";
-      ctx.font = `900 ${MIN * 0.26 * (1.35 - within * 0.35)}px "Inter", sans-serif`;
+      ctx.font = `900 ${MIN * 0.26 * (1.35 - within * 0.35)}px "Pretendard", system-ui, sans-serif`;
       ctx.fillText(String(cur), W / 2, H / 2);
       ctx.restore();
     }
@@ -706,7 +752,7 @@ function renderNet(now, src) {
   const tip = bladePts[bladePts.length - 1];
   const R = MIN * 0.088;
   const scooping = now < grabUntil;
-  const glow = src === "hand" ? "rgba(132,226,191,0.95)" : "rgba(160,200,255,0.95)";
+  const glow = src === "hand" ? "rgba(232,255,46,0.95)" : "rgba(160,200,255,0.95)";
   // 잡는 순간 입구가 번쩍
   if (scooping) {
     const k = 1 - (grabUntil - now) / 220;
