@@ -180,8 +180,13 @@ let usingHandT = -9999;
 let pendingResize = false;
 function applyResize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.floor(innerWidth * DPR), h = Math.floor(innerHeight * DPR);
-  if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵(불필요한 캔버스 리셋 방지)
+  // 9:16 숏폼 프레임 — 뷰포트 안에 contain(중앙). 녹화도 9:16로 깔끔.
+  let boxW = innerWidth, boxH = innerWidth * 16 / 9;
+  if (boxH > innerHeight) { boxH = innerHeight; boxW = innerHeight * 9 / 16; }
+  boxW = Math.floor(boxW); boxH = Math.floor(boxH);
+  const w = Math.floor(boxW * DPR), h = Math.floor(boxH * DPR);
+  if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵
+  canvas.style.width = boxW + "px"; canvas.style.height = boxH + "px";
   W = canvas.width = w; H = canvas.height = h; MIN = Math.min(W, H);
 }
 function resize() {
@@ -611,17 +616,38 @@ function renderEffects() {
 }
 
 // 상단 중앙 정렬 트레이
-// 상단 훅 문구를 캔버스에 그림(모든 단계 공통, 녹화 포함)
+// 상단 훅 — 큼직한 숏폼 밈 자막(굵은 검정 외곽선 + 옐로/화이트, 단어단위 2줄). 모든 단계+녹화 포함.
+let hookBottomY = 0;
 function drawHook() {
   const fam = '"Pretendard", system-ui, sans-serif';
   const t = hook();
-  ctx.save();
+  const maxW = W * 0.94;
+  let fs = MIN * 0.085;
+  const wrapLines = (size) => {
+    ctx.font = `900 ${size}px ${fam}`;
+    const out = [""];
+    for (const wd of t.split(" ")) {
+      const test = out[out.length - 1] ? out[out.length - 1] + " " + wd : wd;
+      if (ctx.measureText(test).width > maxW && out[out.length - 1]) out.push(wd);
+      else out[out.length - 1] = test;
+    }
+    return out;
+  };
+  let lines = wrapLines(fs);
+  while (lines.length > 2 && fs > MIN * 0.05) { fs *= 0.9; lines = wrapLines(fs); }
+  ctx.font = `900 ${fs}px ${fam}`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = `800 ${fitFont(t, MIN * 0.038, W * 0.92, 800, fam)}px ${fam}`;
-  ctx.shadowColor = "rgba(0,0,0,0.85)"; ctx.shadowBlur = MIN * 0.02;
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.fillText(t, W / 2, MIN * 0.05);
-  ctx.restore();
+  ctx.lineJoin = "round"; ctx.miterLimit = 2;
+  ctx.lineWidth = fs * 0.26;
+  ctx.strokeStyle = "#0a0d0a";
+  const lh = fs * 1.14, y0 = MIN * 0.065;
+  hookBottomY = y0 + (lines.length - 1) * lh + fs * 0.75;
+  lines.forEach((ln, i) => {
+    const yy = y0 + i * lh;
+    ctx.strokeText(ln, W / 2, yy);
+    ctx.fillStyle = i % 2 === 0 ? "#ffe14d" : "#ffffff"; // 옐로/화이트 교차
+    ctx.fillText(ln, W / 2, yy);
+  });
 }
 function renderTray() {
   const fs = MIN * 0.044, bh = fs * 1.8, gap = MIN * 0.02;
@@ -633,7 +659,8 @@ function renderTray() {
   ctx.font = `900 ${MIN * 0.046}px "Pretendard", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillStyle = "#fff";
-  ctx.fillText(`${collected.length} / 5`, W / 2, MIN * 0.10);
+  const hb = hookBottomY || MIN * 0.22; // 훅(자막) 아래로 트레이 배치
+  ctx.fillText(`${collected.length} / 5`, W / 2, hb + MIN * 0.045);
 
   // 배지 행 (중앙 정렬, 넘치면 줄바꿈)
   const maxRow = W - MIN * 0.1;
@@ -644,7 +671,7 @@ function renderTray() {
     rows[rows.length - 1].push(i);
     rowW[rowW.length - 1] += need;
   });
-  let y = MIN * 0.165;
+  let y = hb + MIN * 0.11;
   rows.forEach((row, ri) => {
     let x = W / 2 - rowW[ri] / 2;
     row.forEach((i) => {

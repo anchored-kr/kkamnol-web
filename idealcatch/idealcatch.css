@@ -25,7 +25,8 @@ html, body {
 }
 
 #cam { position: fixed; inset: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-#stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 1; }
+/* 9:16 숏폼 프레임 — 가로/세로 크기는 JS가 설정, 중앙 정렬(나머지는 잉크 레터박스) */
+#stage { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: block; z-index: 1; box-shadow: 0 0 0 100vmax var(--ink); }
 
 /* ===== HUD ===== */
 .hud-top {
