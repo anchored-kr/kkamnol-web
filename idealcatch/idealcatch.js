@@ -268,7 +268,7 @@ function startRecording() {
     masterGain.connect(audioDest);
     tracks.push(...audioDest.stream.getAudioTracks());
     recMime = pickMime();
-    rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 6_000_000 } : undefined);
+    rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 3_500_000 } : undefined);
     recChunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
     rec.start(1000); // 1초마다 청크 플러시(중간 끊김에 강함)
@@ -528,8 +528,7 @@ function pill(cx, cy, label, fs, color, scale = 1, rot = 0) {
   const w = ctx.measureText(label).width + fs * 1.5, h = fs * 1.9;
   roundRect(-w / 2, -h / 2, w, h, h / 2);
   ctx.fillStyle = color;
-  ctx.shadowBlur = MIN * 0.03; ctx.shadowColor = color; ctx.fill();
-  ctx.shadowBlur = 0;
+  ctx.fill(); // shadowBlur 글로우 제거 — 매 낱말/배지마다 칠하면 녹화 프레임레이트가 떨어짐
   ctx.fillStyle = inkFor(color);
   ctx.fillText(label, 0, 0);
   ctx.restore();
