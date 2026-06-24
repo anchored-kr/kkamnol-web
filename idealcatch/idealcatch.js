@@ -130,6 +130,15 @@ const READY = {
 };
 const tx = (k) => READY[k][lang] ?? READY[k].en;
 
+// 상단 훅 — "이상형 테스트인 줄 알았는데…" (게임 내내 표시, 녹화에도 박힘)
+const HOOK = {
+  ko:"이상형 테스트인 줄 알았는데…", en:"Thought it was an ideal-type test…", ja:"理想のタイプ診断かと思いきや…", zh:"还以为是理想型测试呢…",
+  es:"Creías que era un test de tipo ideal…", pt:"Achou que era um teste de tipo ideal…", fr:"Tu croyais à un test de type idéal…", de:"Dachtest, es wäre ein Traumtyp-Test…",
+  it:"Pensavi fosse un test sul tipo ideale…", ru:"Думали, это тест на идеал…", tr:"İdeal tip testi sandın ama…", id:"Kira tes tipe ideal, ternyata…",
+  vi:"Tưởng là trắc nghiệm hình mẫu…", th:"นึกว่าเป็นแบบทดสอบสเปกในฝัน…", ar:"ظننتها اختبار شريك الأحلام…", hi:"समझे थे आदर्श-साथी टेस्ट है…",
+};
+const hook = () => HOOK[lang] ?? HOOK.en;
+
 // 색 대비: 밝은 색이면 어두운 글자
 function inkFor(hex) {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
@@ -555,7 +564,7 @@ function render(now, src) {
 }
 
 function renderScene(now, src) {
-  if (phase === "outro") { renderOutro(now); return; }
+  if (phase === "outro") { renderOutro(now); drawHook(); return; }
 
   const tr = camOn ? camTransform() : null;
   if (tr) {
@@ -566,7 +575,7 @@ function renderScene(now, src) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  if (phase === "ready") { renderPoseGuide(now); renderNet(now, src); renderReady(now); updateModePill(now, src); return; }
+  if (phase === "ready") { renderPoseGuide(now); renderNet(now, src); renderReady(now); drawHook(); updateModePill(now, src); return; }
 
   if (phase === "play" || phase === "result") {
     for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key), 1, Math.sin(wd.wob) * 0.2);
@@ -583,6 +592,7 @@ function renderScene(now, src) {
     ctx.fillText(tx("go"), W / 2, H * 0.4);
     ctx.restore();
   }
+  drawHook();
   updateModePill(now, src);
 }
 
@@ -601,6 +611,18 @@ function renderEffects() {
 }
 
 // 상단 중앙 정렬 트레이
+// 상단 훅 문구를 캔버스에 그림(모든 단계 공통, 녹화 포함)
+function drawHook() {
+  const fam = '"Pretendard", system-ui, sans-serif';
+  const t = hook();
+  ctx.save();
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = `800 ${fitFont(t, MIN * 0.038, W * 0.92, 800, fam)}px ${fam}`;
+  ctx.shadowColor = "rgba(0,0,0,0.85)"; ctx.shadowBlur = MIN * 0.02;
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.fillText(t, W / 2, MIN * 0.05);
+  ctx.restore();
+}
 function renderTray() {
   const fs = MIN * 0.044, bh = fs * 1.8, gap = MIN * 0.02;
   ctx.font = `800 ${fs}px "Pretendard", system-ui, sans-serif`;
@@ -611,7 +633,7 @@ function renderTray() {
   ctx.font = `900 ${MIN * 0.046}px "Pretendard", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillStyle = "#fff";
-  ctx.fillText(`${collected.length} / 5`, W / 2, MIN * 0.055);
+  ctx.fillText(`${collected.length} / 5`, W / 2, MIN * 0.10);
 
   // 배지 행 (중앙 정렬, 넘치면 줄바꿈)
   const maxRow = W - MIN * 0.1;
@@ -622,7 +644,7 @@ function renderTray() {
     rows[rows.length - 1].push(i);
     rowW[rowW.length - 1] += need;
   });
-  let y = MIN * 0.13;
+  let y = MIN * 0.165;
   rows.forEach((row, ri) => {
     let x = W / 2 - rowW[ri] / 2;
     row.forEach((i) => {
