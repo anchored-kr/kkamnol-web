@@ -238,7 +238,7 @@ function playKkamnolSting() {
 const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
-let rec = null, recChunks = [], recMime = "";
+let rec = null, recChunks = [], recMime = "", recStartT = 0;
 let lastVideoUrl = null, lastExt = "webm";
 function pickMime() {
   const cands = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
@@ -258,17 +258,31 @@ function startRecording() {
     recChunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
     rec.start(1000); // 1초마다 청크 플러시(중간 끊김에 강함)
+    recStartT = performance.now();
     recEl.hidden = false;
     return true;
   } catch (e) { return false; }
+}
+// WebM은 MediaRecorder가 duration 메타데이터를 안 넣어 재생속도가 들쭉날쭉해짐 → 정확한 길이 주입(remux)
+async function fixDuration(blob, durMs) {
+  if (!blob || !/webm/.test(blob.type) || !(durMs > 0)) return blob;
+  try {
+    const mod = await import("https://esm.sh/fix-webm-duration@1.0.5");
+    const fix = mod.default || mod.fixWebmDuration || mod.ysFixWebmDuration || mod;
+    const out = await fix(blob, durMs);
+    return out instanceof Blob ? out : blob;
+  } catch (e) { console.warn("[rec] fixDuration", e); return blob; }
 }
 function stopRecording() {
   return new Promise((res) => {
     recEl.hidden = true;
     if (!rec || rec.state === "inactive") return res(null);
-    rec.onstop = () => {
+    rec.onstop = async () => {
       if (pendingResize) { pendingResize = false; applyResize(); } // 녹화 중 보류된 리사이즈 반영
-      res(new Blob(recChunks, { type: (recMime || "video/webm").split(";")[0] }));
+      const type = (recMime || "video/webm").split(";")[0];
+      let blob = new Blob(recChunks, { type });
+      blob = await fixDuration(blob, recStartT ? performance.now() - recStartT : 0); // 재생속도 안정화
+      res(blob);
     };
     rec.stop();
   });
