@@ -306,12 +306,11 @@ function handTip(t) {
   let res;
   try { res = handLandmarker.detectForVideo(video, t); } catch { return null; }
   if (!res || !res.landmarks || !res.landmarks.length) return null;
-  // 손바닥 중심 = 손목(0)과 중지 시작(9)의 평균 → "손으로 잡는" 느낌
-  const lm0 = res.landmarks[0][0], lm9 = res.landmarks[0][9];
-  const cx = (lm0.x + lm9.x) / 2, cy = (lm0.y + lm9.y) / 2;
+  // 검지 끝(landmark 8) — 뜰채 입구가 손가락 끝에 오게
+  const lm = res.landmarks[0][8];
   const tr = camTransform();
   if (!tr) return null;
-  return { x: W - (tr.ox + cx * tr.vw * tr.scale), y: tr.oy + cy * tr.vh * tr.scale };
+  return { x: W - (tr.ox + lm.x * tr.vw * tr.scale), y: tr.oy + lm.y * tr.vh * tr.scale };
 }
 
 // ---------- 게임 흐름 ----------
