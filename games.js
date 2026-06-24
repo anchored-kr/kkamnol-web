@@ -25,6 +25,15 @@ const GAMES = [
     url: "/idealcatch",
     color: "pink",
   },
+  {
+    id: "wobble",
+    title: "흐물흐물 댄스",
+    en: "Wobble Dance",
+    emoji: "🕺",
+    status: "live",
+    url: "/wobble",
+    color: "lavender",
+  },
 ];
 
 function cardHTML(g, rotation) {

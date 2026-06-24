@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>흐물흐물 댄스 — Kkamnol</title>
+    <meta name="description" content="내 몸을 카메라로 캡쳐하면 젤리처럼 흐물흐물 춤을 춰요! 웹캠 전신 추적 미니게임. 9:16 영상으로 SNS에 공유하세요. Kkamnol 흐물흐물 댄스." />
+    <link rel="canonical" href="https://kkamnol.xyz/wobble" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kkamnol.xyz/wobble" />
+    <meta property="og:title" content="흐물흐물 댄스 — Kkamnol" />
+    <meta property="og:description" content="내 몸을 찍으면 흐물흐물 춤춰요! 결과 영상으로 공유하기." />
+    <meta property="og:image" content="https://kkamnol.xyz/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#111114" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕺</text></svg>" />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/wobble/wobble.css" />
+  </head>
+  <body>
+    <video id="cam" playsinline muted autoplay></video>
+    <canvas id="stage"></canvas>
+
+    <header class="hud-top">
+      <a class="brand" href="/">
+        <span class="brand__mark">😮</span><span class="brand__name">kkamnol</span>
+      </a>
+      <span id="rec" class="rec" hidden>● REC</span>
+      <span id="mode" class="mode-pill">· · ·</span>
+    </header>
+
+    <!-- 1) 언어 선택 -->
+    <section id="langScreen" class="overlay overlay--cute">
+      <div class="floaties" aria-hidden="true"><span>🕺</span><span>💃</span><span>🎵</span><span>🪩</span><span>😮</span><span>✨</span></div>
+      <div class="panel">
+        <p class="eyebrow">Kkamnol</p>
+        <h1 id="langTitle">언어를 선택하세요</h1>
+        <div id="langGrid" class="lang-grid"></div>
+      </div>
+    </section>
+
+    <!-- 2) 시작 -->
+    <section id="startScreen" class="overlay overlay--cute" hidden>
+      <div class="floaties" aria-hidden="true"><span>🕺</span><span>🎶</span><span>💃</span><span>🪩</span><span>😮</span><span>✨</span></div>
+      <div class="panel">
+        <p class="eyebrow">🕺 Wobble Dance</p>
+        <h1 id="startTitle">흐물흐물 댄스</h1>
+        <p id="startTagline" class="sub">내 몸을 찍으면 흐물흐물 춤춰요!</p>
+        <p id="startHow" class="how">전신이 보이게 서면 자동 캡쳐 → 춤!</p>
+        <button id="startBtn" class="btn btn--primary">카메라 켜고 시작</button>
+        <button id="startNoCam" class="btn btn--ghost">카메라 없이 데모 보기</button>
+        <p id="startPrivacy" class="hint">영상은 기기 안에서만 처리돼요</p>
+      </div>
+    </section>
+
+    <!-- 3) 공유 (녹화 종료 후) -->
+    <section id="shareScreen" class="overlay" hidden>
+      <div class="panel">
+        <p id="shareTitle" class="eyebrow">완성! 영상으로 공유하세요</p>
+        <video id="shareVid" class="share-vid" playsinline loop muted autoplay></video>
+        <button id="saveBtn" class="btn btn--primary">영상 저장</button>
+        <button id="linkBtn" class="btn btn--ghost">링크 공유</button>
+        <button id="againBtn" class="btn btn--ghost">다시 하기</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <footer class="hud-bottom">
+      <span>© 2026 Kkamnol Interactive</span>
+      <span class="links">
+        <a href="https://www.instagram.com/kkamnol.interactive/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/@kkamnol.interactive" target="_blank" rel="noopener">TikTok</a>
+      </span>
+    </footer>
+
+    <script src="/wobble/wobble.js" type="module"></script>
+  </body>
+</html>
