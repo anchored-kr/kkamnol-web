@@ -543,11 +543,10 @@ function fitFont(text, base, maxW, weight, fam) {
 
 // 깜놀 프레임 — 시그널 옐로 보더 + 코너 워드마크. 캔버스에 그려 녹화 클립도 한눈에 깜놀 식별(룩북 5장)
 function drawKkamnolFrame(now) {
-  const pad = Math.max(7, MIN * 0.013), r = MIN * 0.03;
+  const pad = Math.max(7, MIN * 0.013);
   ctx.save();
-  ctx.strokeStyle = SIGNAL; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(2, MIN * 0.0055);
-  roundRect(pad, pad, W - pad * 2, H - pad * 2, r); ctx.stroke();
-  ctx.globalAlpha = 1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  // 노란 보더 제거 — 코너 워드마크만 유지(녹화 클립 브랜드 식별)
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
   ctx.font = `900 ${MIN * 0.03}px ${FONT}`; ctx.fillStyle = SIGNAL;
   ctx.fillText("깜놀", pad * 2, H - pad * 2.1);
   ctx.restore();
@@ -640,7 +639,7 @@ function drawHook() {
   ctx.lineJoin = "round"; ctx.miterLimit = 2;
   ctx.lineWidth = fs * 0.26;
   ctx.strokeStyle = "#0a0d0a";
-  const lh = fs * 1.14, y0 = H * 0.135; // 릴스/틱톡 상단 UI에 안 가리게 아래로
+  const lh = fs * 1.14, y0 = H * 0.18; // 릴스/틱톡 상단 UI에 안 가리게 아래로
   hookBottomY = y0 + (lines.length - 1) * lh + fs * 0.75;
   lines.forEach((ln, i) => {
     const yy = y0 + i * lh;
@@ -791,11 +790,11 @@ function renderPoseGuide(now) {
   if (fade <= 0) return;
   const cx = W / 2, u = MIN;
   const headR = u * 0.06;
-  const hy = H * 0.52;                 // 머리 중심(자막과 안 겹치게 아래로)
+  const hy = H * 0.56;                 // 머리 중심(자막과 안 겹치게 아래로)
   const shY = hy + headR * 1.5;        // 어깨
   const shW = u * 0.155;               // 어깨 너비
-  const hipY = H * 0.81;
-  const handX = cx + u * 0.02, handY = H * 0.28; // 머리 위로 든 손
+  const hipY = H * 0.85;
+  const handX = cx + u * 0.02, handY = H * 0.32; // 머리 위로 든 손
   const pulse = 0.5 + 0.5 * Math.sin(now / 320);
 
   ctx.save();
