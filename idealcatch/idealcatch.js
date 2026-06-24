@@ -60,6 +60,42 @@ const TRAITS = {
   greenflag:   { color:"#4ade80", ko:"효자효녀", en:"Green flag", ja:"親孝行", zh:"孝顺" },
   gooddriver:  { color:"#9ca3af", ko:"운전 잘함", en:"Good driver", ja:"運転上手", zh:"车技好" },
   petlover:    { color:"#a3e635", ko:"동물 잘 챙김", en:"Loves pets", ja:"動物好き", zh:"爱宠物" },
+
+  // ── 외모(남녀 모두) ──
+  handsome:    { color:"#4f9dff", ko:"잘생김", en:"Handsome", ja:"イケメン", zh:"帅气" },
+  pretty:      { color:"#ff6fae", ko:"예쁨", en:"Pretty", ja:"美人", zh:"漂亮" },
+  cute:        { color:"#ffa6d2", ko:"귀여움", en:"Cuteness", ja:"可愛さ", zh:"可爱" },
+  babyface:    { color:"#ffcf6b", ko:"동안", en:"Baby face", ja:"童顔", zh:"童颜" },
+  features:    { color:"#c084fc", ko:"또렷한 이목구비", en:"Sharp features", ja:"整った顔立ち", zh:"五官立体" },
+  smallface:   { color:"#5eead4", ko:"작은 얼굴", en:"Small face", ja:"小顔", zh:"小脸" },
+  vline:       { color:"#7dd3fc", ko:"V라인", en:"V-line jaw", ja:"Vライン", zh:"V脸" },
+  dimples:     { color:"#fb9ec0", ko:"보조개", en:"Dimples", ja:"えくぼ", zh:"酒窝" },
+  muscular:    { color:"#ef6c4a", ko:"근육질", en:"Muscular", ja:"筋肉質", zh:"肌肉" },
+  slimbody:    { color:"#67e8c9", ko:"슬림한 몸매", en:"Slim figure", ja:"スリム体型", zh:"苗条" },
+  glamour:     { color:"#ff5a8a", ko:"글래머", en:"Curvy figure", ja:"グラマー", zh:"好身材" },
+  proportions: { color:"#34d399", ko:"좋은 비율", en:"Great proportions", ja:"スタイル抜群", zh:"身材比例好" },
+  fairskin:    { color:"#fde68a", ko:"백옥피부", en:"Fair skin", ja:"色白肌", zh:"白皙皮肤" },
+  nicehair:    { color:"#c08552", ko:"좋은 머릿결", en:"Nice hair", ja:"美髪", zh:"好发质" },
+  aura:        { color:"#a78bfa", ko:"좋은 분위기", en:"Great aura", ja:"雰囲気", zh:"气质好" },
+
+  // ── 성격(남녀 모두) ──
+  caring:      { color:"#ff8a5c", ko:"자상함", en:"Caring", ja:"思いやり", zh:"体贴入微" },
+  considerate: { color:"#f0abdc", ko:"배려심", en:"Considerate", ja:"気配り上手", zh:"善解人意" },
+  positive:    { color:"#fbbf24", ko:"긍정적", en:"Positive", ja:"ポジティブ", zh:"乐观" },
+  honest:      { color:"#38bdf8", ko:"솔직함", en:"Honest", ja:"素直", zh:"坦诚" },
+  confident:   { color:"#f43f5e", ko:"자신감", en:"Confident", ja:"自信家", zh:"自信" },
+  responsible: { color:"#3b82f6", ko:"책임감", en:"Responsible", ja:"責任感", zh:"有责任感" },
+  leadership:  { color:"#6366f1", ko:"리더십", en:"Leadership", ja:"リーダーシップ", zh:"领导力" },
+  sincere:     { color:"#10b981", ko:"성실함", en:"Sincere", ja:"誠実", zh:"真诚" },
+  calm:        { color:"#93c5fd", ko:"차분함", en:"Calm", ja:"落ち着き", zh:"沉稳" },
+  aegyo:       { color:"#ff9ecb", ko:"애교", en:"Aegyo charm", ja:"愛嬌", zh:"撒娇" },
+  easygoing:   { color:"#84cc16", ko:"털털함", en:"Easygoing", ja:"さばさば", zh:"大大咧咧" },
+  empathy:     { color:"#2dd4bf", ko:"공감능력", en:"Empathy", ja:"共感力", zh:"共情力" },
+  loyal:       { color:"#f59e0b", ko:"의리", en:"Loyalty", ja:"義理堅い", zh:"重情义" },
+  witty:       { color:"#06b6d4", ko:"위트", en:"Witty", ja:"ウィット", zh:"风趣" },
+  lively:      { color:"#fb7185", ko:"활발함", en:"Lively", ja:"活発", zh:"活泼" },
+  reliable:    { color:"#2563eb", ko:"듬직함", en:"Reliable", ja:"頼れる", zh:"靠谱" },
+  gentle:      { color:"#f9a8d4", ko:"부드러움", en:"Gentle", ja:"物腰柔らか", zh:"温柔" },
 };
 const TRAIT_KEYS = Object.keys(TRAITS);
 
