@@ -184,7 +184,7 @@ function applyResize() {
   if (boxH > innerHeight) { boxH = innerHeight; boxW = innerHeight * 9 / 16; }
   boxW = Math.floor(boxW); boxH = Math.floor(boxH);
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.floor(boxW * DPR), h = Math.floor(boxH * DPR);
+  const w = Math.floor(boxW * DPR) & ~1, h = Math.floor(boxH * DPR) & ~1; // 짝수(H.264 인코더 요건)
   if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵
   canvas.style.width = boxW + "px"; canvas.style.height = boxH + "px";
   W = canvas.width = w; H = canvas.height = h; MIN = Math.min(W, H);
@@ -192,7 +192,7 @@ function applyResize() {
 function resize() {
   // 녹화 중엔 캔버스 크기를 건드리지 않음 — 모바일 주소창 토글 등으로 캔버스를 리셋하면
   // captureStream 비디오 트랙이 얼어 녹화 영상이 중간에 멈춤. 녹화 끝나면 반영.
-  if (rec && rec.state === "recording") { pendingResize = true; return; }
+  if (recording) { pendingResize = true; return; } // 녹화 중 캔버스 크기 변경 보류(인코더 차원 고정)
   applyResize();
 }
 addEventListener("resize", resize);
@@ -252,54 +252,45 @@ function playKkamnolSting() {
 const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
-let rec = null, recChunks = [], recMime = "", recStartT = 0;
-let lastVideoUrl = null, lastExt = "webm";
-function pickMime() {
-  const cands = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-  return cands.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
-}
-function startRecording() {
-  if (!canvas.captureStream || !window.MediaRecorder) return false;
+// 녹화: MediaRecorder+captureStream은 iOS Safari에서 깨짐(WebKit 181663/216832: 영상 트랙 무효·duration 손상).
+// → WebCodecs(mediabunny)로 캔버스를 실시간 타임스탬프로 직접 인코딩 → iOS에서도 정상 속도/길이 mp4.
+// (오디오 인코딩은 Safari 26+에서만 가능 → 현재는 영상만. 추후 추가)
+let mbOut = null, mbVideo = null, recording = false, recStartT = 0, lastFrameT = 0, addInFlight = false, lastAddP = null;
+let lastVideoUrl = null, lastExt = "mp4";
+async function startRecording() {
+  if (typeof VideoEncoder === "undefined") return false; // WebCodecs 미지원 → 녹화 비활성(이미지 공유로 폴백)
   try {
-    const v = canvas.captureStream(30);
-    const tracks = [...v.getVideoTracks()];
-    ensureAudio();
-    audioDest = audioCtx.createMediaStreamDestination();
-    masterGain.connect(audioDest);
-    tracks.push(...audioDest.stream.getAudioTracks());
-    recMime = pickMime();
-    rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 6_000_000 } : undefined);
-    recChunks = [];
-    rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
-    rec.start(1000); // 1초마다 청크 플러시(중간 끊김에 강함)
-    recStartT = performance.now();
+    const { Output, Mp4OutputFormat, BufferTarget, CanvasSource } = await import("https://esm.sh/mediabunny");
+    mbOut = new Output({ format: new Mp4OutputFormat(), target: new BufferTarget() });
+    mbVideo = new CanvasSource(canvas, { codec: "avc", bitrate: 6_000_000 });
+    mbOut.addVideoTrack(mbVideo, { frameRate: 30 });
+    await mbOut.start();
+    recStartT = performance.now(); lastFrameT = 0; recording = true;
     recEl.hidden = false;
     return true;
-  } catch (e) { return false; }
+  } catch (e) { console.warn("[rec] start", e); mbOut = null; mbVideo = null; recording = false; return false; }
 }
-// WebM은 MediaRecorder가 duration 메타데이터를 안 넣어 재생속도가 들쭉날쭉해짐 → 정확한 길이 주입(remux)
-async function fixDuration(blob, durMs) {
-  if (!blob || !/webm/.test(blob.type) || !(durMs > 0)) return blob;
+// 렌더 직후 호출 — 실제 경과시간(초)을 타임스탬프로 캔버스 프레임 공급(~30fps) → 빨리감기/정지 없음
+function captureFrame(now) {
+  // add()는 백프레셔 프로미스 반환 → 직전 프레임 인코딩 중이면 이번 프레임은 건너뜀(큐 폭주·빈 출력 방지)
+  if (!recording || !mbVideo || addInFlight || now - lastFrameT < 33) return;
+  lastFrameT = now;
+  addInFlight = true;
   try {
-    const mod = await import("https://esm.sh/fix-webm-duration@1.0.5");
-    const fix = mod.default || mod.fixWebmDuration || mod.ysFixWebmDuration || mod;
-    const out = await fix(blob, durMs);
-    return out instanceof Blob ? out : blob;
-  } catch (e) { console.warn("[rec] fixDuration", e); return blob; }
+    lastAddP = Promise.resolve(mbVideo.add((now - recStartT) / 1000, 1 / 30))
+      .catch(() => {}).finally(() => { addInFlight = false; });
+  } catch { addInFlight = false; }
 }
-function stopRecording() {
-  return new Promise((res) => {
-    recEl.hidden = true;
-    if (!rec || rec.state === "inactive") return res(null);
-    rec.onstop = async () => {
-      if (pendingResize) { pendingResize = false; applyResize(); } // 녹화 중 보류된 리사이즈 반영
-      const type = (recMime || "video/webm").split(";")[0];
-      let blob = new Blob(recChunks, { type });
-      blob = await fixDuration(blob, recStartT ? performance.now() - recStartT : 0); // 재생속도 안정화
-      res(blob);
-    };
-    rec.stop();
-  });
+async function stopRecording() {
+  if (!recording || !mbOut) return null;
+  recording = false; recEl.hidden = true;
+  if (pendingResize) { pendingResize = false; applyResize(); } // 보류된 리사이즈 반영
+  const out = mbOut; mbOut = null; mbVideo = null;
+  try {
+    if (lastAddP) await lastAddP.catch(() => {}); // 진행 중 프레임 마무리 후 finalize
+    await out.finalize();
+    return new Blob([out.target.buffer], { type: "video/mp4" });
+  } catch (e) { console.warn("[rec] finalize", e); return null; }
 }
 
 // ---------- 카메라 + 손 ----------
@@ -428,7 +419,7 @@ function showShare(blob) {
   shareScreen.hidden = false;
   const saveBtn = document.getElementById("saveBtn");
   if (blob && blob.size) {
-    lastExt = recMime.includes("mp4") ? "mp4" : "webm";
+    lastExt = "mp4";
     if (lastVideoUrl) URL.revokeObjectURL(lastVideoUrl);
     lastVideoUrl = URL.createObjectURL(blob);
     shareVid.src = lastVideoUrl; shareVid.hidden = false;
@@ -508,6 +499,7 @@ function frame(now) {
   }
 
   render(now, src);
+  captureFrame(now); // 녹화 중이면 현재 캔버스를 프레임으로 공급
   requestAnimationFrame(frame);
 }
 
