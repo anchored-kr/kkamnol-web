@@ -640,7 +640,7 @@ function drawHook() {
   ctx.lineJoin = "round"; ctx.miterLimit = 2;
   ctx.lineWidth = fs * 0.26;
   ctx.strokeStyle = "#0a0d0a";
-  const lh = fs * 1.14, y0 = MIN * 0.065;
+  const lh = fs * 1.14, y0 = MIN * 0.08;
   hookBottomY = y0 + (lines.length - 1) * lh + fs * 0.75;
   lines.forEach((ln, i) => {
     const yy = y0 + i * lh;
@@ -791,11 +791,11 @@ function renderPoseGuide(now) {
   if (fade <= 0) return;
   const cx = W / 2, u = MIN;
   const headR = u * 0.06;
-  const hy = H * 0.37;                 // 머리 중심
+  const hy = H * 0.42;                 // 머리 중심(자막과 안 겹치게 아래로)
   const shY = hy + headR * 1.5;        // 어깨
   const shW = u * 0.155;               // 어깨 너비
-  const hipY = H * 0.66;
-  const handX = cx + u * 0.02, handY = H * 0.12; // 머리 위로 든 손
+  const hipY = H * 0.71;
+  const handX = cx + u * 0.02, handY = H * 0.17; // 머리 위로 든 손
   const pulse = 0.5 + 0.5 * Math.sin(now / 320);
 
   ctx.save();
