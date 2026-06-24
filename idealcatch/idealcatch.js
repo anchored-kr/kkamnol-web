@@ -252,7 +252,7 @@ function playKkamnolSting() {
 const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
-let rec = null, recChunks = [], recMime = "", recStartT = 0, recVTrack = null, recManual = false, lastCaptureT = 0;
+let rec = null, recChunks = [], recMime = "", recStartT = 0;
 let lastVideoUrl = null, lastExt = "webm";
 function pickMime() {
   const cands = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
@@ -261,12 +261,7 @@ function pickMime() {
 function startRecording() {
   if (!canvas.captureStream || !window.MediaRecorder) return false;
   try {
-    // iOS(특히 ProMotion 120Hz): 자동 캡처는 프레임 타임스탬프가 어긋나 재생이 빨리감기됨 → 실시간 30fps 수동 공급
-    let v = canvas.captureStream(0); // 수동 모드(자동 캡처 끔)
-    recVTrack = v.getVideoTracks()[0];
-    recManual = !!(recVTrack && typeof recVTrack.requestFrame === "function");
-    if (!recManual) { v = canvas.captureStream(30); recVTrack = null; } // requestFrame 미지원 → 자동 폴백
-    lastCaptureT = 0;
+    const v = canvas.captureStream(30);
     const tracks = [...v.getVideoTracks()];
     ensureAudio();
     audioDest = audioCtx.createMediaStreamDestination();
@@ -513,11 +508,6 @@ function frame(now) {
   }
 
   render(now, src);
-  // 녹화: 렌더 직후 실시간 ~30fps로 프레임 수동 공급 → 타임스탬프 정상화(자동 캡처의 빨리감기 방지)
-  if (recManual && rec && rec.state === "recording" && now - lastCaptureT >= 33) {
-    lastCaptureT = now;
-    try { recVTrack.requestFrame(); } catch {}
-  }
   requestAnimationFrame(frame);
 }
 
