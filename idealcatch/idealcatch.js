@@ -262,7 +262,7 @@ function pickMime() {
 function startRecording() {
   if (!canvas.captureStream || !window.MediaRecorder) return false;
   try {
-    const v = canvas.captureStream(30);
+    const v = canvas.captureStream(24); // iOS: 24fps 고정이 30보다 균일(인코더 부하↓)
     const tracks = [...v.getVideoTracks()];
     ensureAudio();
     audioDest = audioCtx.createMediaStreamDestination();
@@ -332,7 +332,7 @@ function handTip(t) {
   if (!handLandmarker || !camOn || video.readyState < 2) return lastHandTip;
   // detect를 ~22fps로 제한(매 프레임 추론이 메인스레드 최대 부하 → 녹화 끊김).
   // 사이 프레임은 캐시된 위치 반환 → 뜰채는 디스플레이 fps로 매끄럽게.
-  if (t - lastDetectT < 45 || video.currentTime === lastVideoTime) return lastHandTip;
+  if (t - lastDetectT < 55 || video.currentTime === lastVideoTime) return lastHandTip; // ~18fps
   lastDetectT = t; lastVideoTime = video.currentTime;
   let res;
   try { res = handLandmarker.detectForVideo(video, t); } catch { return lastHandTip; }
