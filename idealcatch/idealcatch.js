@@ -584,7 +584,7 @@ function renderScene(now, src) {
   if (phase === "play" || phase === "result") {
     for (const wd of words) pill(wd.x, wd.y, traitLabel(wd.key), wd.fs, traitColor(wd.key), 1, Math.sin(wd.wob) * 0.2);
     renderEffects();
-    renderTray();
+    if (phase === "play") renderTray(); // 결과 카드 가리지 않게 결과 단계엔 트레이 숨김
   }
   if (phase === "result") renderResult(now);
   if (phase === "play") renderNet(now, src);
@@ -596,7 +596,7 @@ function renderScene(now, src) {
     ctx.fillText(tx("go"), W / 2, H * 0.4);
     ctx.restore();
   }
-  drawHook();
+  if (phase === "play") drawHook(); // 결과 카드 가리지 않게 결과 단계엔 훅 자막 숨김
   updateModePill(now, src);
 }
 
