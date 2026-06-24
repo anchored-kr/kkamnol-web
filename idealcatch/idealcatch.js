@@ -204,7 +204,7 @@ addEventListener("pointermove", onPointer, { passive: true });
 addEventListener("pointerdown", onPointer, { passive: true });
 
 // ---------- 오디오 ----------
-let audioCtx = null, masterGain = null, audioDest = null;
+let audioCtx = null, masterGain = null;
 function ensureAudio() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -225,50 +225,89 @@ function unlockAudio() {
 }
 addEventListener("pointerdown", unlockAudio, { passive: true });
 addEventListener("touchend", unlockAudio, { passive: true });
-function tone(freq, t0, dur, type = "sine", peak = 0.3) {
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(masterGain);
-  const now = audioCtx.currentTime + t0;
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(peak, now + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  o.start(now); o.stop(now + dur + 0.05);
+
+// 사운드 합성 — 임의 컨텍스트/마스터/절대시각(when)에 스케줄. 라이브 재생 + 녹화용 오프라인 렌더 공용.
+function toneAt(ctx, master, freq, when, dur, type = "sine", peak = 0.3) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(master);
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  o.start(when); o.stop(when + dur + 0.05);
 }
-const playCatch = () => { ensureAudio(); tone(523, 0, 0.1, "sine", 0.3); tone(784, 0.05, 0.13, "sine", 0.28); }; // 잡는 "팝"
-// 🔑 깜놀 스팅어 — 모든 깜놀 게임 공통 오디오 로고(룩북): 상승 whoosh → 스냅 → 밝은 벨
-function playKkamnolSting() {
+function sfxCatch(ctx, master, base) { // 잡는 "팝"
+  toneAt(ctx, master, 523, base, 0.1, "sine", 0.3);
+  toneAt(ctx, master, 784, base + 0.05, 0.13, "sine", 0.28);
+}
+function sfxSting(ctx, master, base) { // 🔑 깜놀 스팅어(룩북 오디오 로고): 상승 whoosh → 스냅 → 밝은 벨
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = "sawtooth"; o.connect(g); g.connect(master);
+  o.frequency.setValueAtTime(260, base); o.frequency.exponentialRampToValueAtTime(1500, base + 0.17);
+  g.gain.setValueAtTime(0.0001, base); g.gain.exponentialRampToValueAtTime(0.22, base + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, base + 0.2);
+  o.start(base); o.stop(base + 0.24);
+  toneAt(ctx, master, 660, base + 0.16, 0.05, "square", 0.3);    // 스냅(팝)
+  toneAt(ctx, master, 1320, base + 0.19, 0.5, "triangle", 0.34); // 밝은 벨(반전 확정)
+  toneAt(ctx, master, 1976, base + 0.21, 0.45, "sine", 0.2);
+}
+function sfxOutro(ctx, master, base) { // 엔드 3노트 "깜-놀-!" 모티프(룩북). 모든 게임 영상 끝.
+  toneAt(ctx, master, 784, base, 0.5, "triangle", 0.34);
+  toneAt(ctx, master, 1175, base + 0.12, 0.6, "triangle", 0.3);
+  toneAt(ctx, master, 1568, base + 0.26, 0.9, "sine", 0.26);
+}
+const SOUND_RENDERERS = { catch: sfxCatch, sting: sfxSting, outro: sfxOutro };
+let soundLog = []; // 녹화용 사운드 타임라인 [{name, t(녹화시작 기준 초)}]
+function playSound(name) {
   ensureAudio();
-  const t0 = audioCtx.currentTime;
-  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-  o.type = "sawtooth"; o.connect(g); g.connect(masterGain);
-  o.frequency.setValueAtTime(260, t0); o.frequency.exponentialRampToValueAtTime(1500, t0 + 0.17);
-  g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.22, t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-  o.start(t0); o.stop(t0 + 0.24);
-  tone(660, 0.16, 0.05, "square", 0.3);    // 스냅(팝)
-  tone(1320, 0.19, 0.5, "triangle", 0.34); // 밝은 벨(반전 확정)
-  tone(1976, 0.21, 0.45, "sine", 0.2);
+  SOUND_RENDERERS[name](audioCtx, masterGain, audioCtx.currentTime); // 라이브 재생
+  if (recording) soundLog.push({ name, t: Math.max(0, (performance.now() - recStartT) / 1000) }); // 녹화 트랙용 기록
 }
-// 엔드 스팅어 — 3노트 "깜-놀-!" 모티프(룩북). 모든 게임 영상 끝.
-const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
+const playCatch = () => playSound("catch");
+const playKkamnolSting = () => playSound("sting");
+const playOutro = () => playSound("outro");
+// 단발 톤(카운트다운 틱·GO 등) — 라이브 재생 + 녹화 기록
+function playTone(freq, dur, type, peak) {
+  ensureAudio();
+  toneAt(audioCtx, masterGain, freq, audioCtx.currentTime, dur, type, peak);
+  if (recording) soundLog.push({ tone: [freq, dur, type, peak], t: Math.max(0, (performance.now() - recStartT) / 1000) });
+}
+// 녹화된 사운드 타임라인을 오프라인 렌더 → 단일 AudioBuffer(녹화 길이). 영상과 동일 클럭(0=녹화시작)이라 싱크됨.
+async function renderSoundtrack(durSec) {
+  const sr = (audioCtx && audioCtx.sampleRate) || 48000;
+  const len = Math.max(1, Math.ceil((durSec + 0.15) * sr));
+  const oac = new OfflineAudioContext(1, len, sr);
+  const gain = oac.createGain(); gain.gain.value = 0.5; gain.connect(oac.destination);
+  for (const e of soundLog) {
+    if (e.tone) toneAt(oac, gain, e.tone[0], e.t, e.tone[1], e.tone[2], e.tone[3]);
+    else { const fn = SOUND_RENDERERS[e.name]; if (fn) fn(oac, gain, e.t); }
+  }
+  return await oac.startRendering();
+}
 
 // ---------- 녹화 ----------
 // 녹화: MediaRecorder+captureStream은 iOS Safari에서 깨짐(WebKit 181663/216832: 영상 트랙 무효·duration 손상).
 // → WebCodecs(mediabunny)로 캔버스를 실시간 타임스탬프로 직접 인코딩 → iOS에서도 정상 속도/길이 mp4.
 // (오디오 인코딩은 Safari 26+에서만 가능 → 현재는 영상만. 추후 추가)
-let mbOut = null, mbVideo = null, recording = false, recStartT = 0, lastFrameT = 0, addInFlight = false, lastAddP = null;
+let mbOut = null, mbVideo = null, mbAudio = null, recording = false, recStartT = 0, lastFrameT = 0, addInFlight = false, lastAddP = null;
 let lastVideoUrl = null, lastExt = "mp4";
 async function startRecording() {
   if (typeof VideoEncoder === "undefined") return false; // WebCodecs 미지원 → 녹화 비활성(이미지 공유로 폴백)
   try {
-    const { Output, Mp4OutputFormat, BufferTarget, CanvasSource } = await import("https://esm.sh/mediabunny");
-    mbOut = new Output({ format: new Mp4OutputFormat(), target: new BufferTarget() });
-    mbVideo = new CanvasSource(canvas, { codec: "avc", bitrate: 6_000_000 });
+    const mb = await import("https://esm.sh/mediabunny");
+    mbOut = new mb.Output({ format: new mb.Mp4OutputFormat(), target: new mb.BufferTarget() });
+    mbVideo = new mb.CanvasSource(canvas, { codec: "avc", bitrate: 6_000_000 });
     mbOut.addVideoTrack(mbVideo, { frameRate: 30 });
+    // 오디오 트랙(가능 시) — AudioEncoder는 Safari 26+/Chrome만. 미지원이면 영상만(무음).
+    mbAudio = null; soundLog = [];
+    try {
+      const acodec = (typeof AudioEncoder !== "undefined" && await mb.canEncodeAudio("aac")) ? "aac"
+                   : (typeof AudioEncoder !== "undefined" && await mb.canEncodeAudio("opus")) ? "opus" : null;
+      if (acodec) { mbAudio = new mb.AudioBufferSource({ codec: acodec, bitrate: 128_000 }); mbOut.addAudioTrack(mbAudio); }
+    } catch { mbAudio = null; }
     await mbOut.start();
     recStartT = performance.now(); lastFrameT = 0; recording = true;
     recEl.hidden = false;
     return true;
-  } catch (e) { console.warn("[rec] start", e); mbOut = null; mbVideo = null; recording = false; return false; }
+  } catch (e) { console.warn("[rec] start", e); mbOut = null; mbVideo = null; mbAudio = null; recording = false; return false; }
 }
 // 렌더 직후 호출 — 실제 경과시간(초)을 타임스탬프로 캔버스 프레임 공급(~30fps) → 빨리감기/정지 없음
 function captureFrame(now) {
@@ -285,9 +324,13 @@ async function stopRecording() {
   if (!recording || !mbOut) return null;
   recording = false; recEl.hidden = true;
   if (pendingResize) { pendingResize = false; applyResize(); } // 보류된 리사이즈 반영
-  const out = mbOut; mbOut = null; mbVideo = null;
+  const out = mbOut, aud = mbAudio; mbOut = null; mbVideo = null; mbAudio = null;
+  const durSec = (performance.now() - recStartT) / 1000;
   try {
-    if (lastAddP) await lastAddP.catch(() => {}); // 진행 중 프레임 마무리 후 finalize
+    if (lastAddP) await lastAddP.catch(() => {}); // 진행 중 영상 프레임 마무리
+    if (aud) { // 사운드 타임라인을 오프라인 렌더 → 오디오 트랙에 추가(영상과 동일 클럭이라 싱크)
+      try { await aud.add(await renderSoundtrack(durSec)); } catch (e) { console.warn("[rec] audio", e); }
+    }
     await out.finalize();
     return new Blob([out.target.buffer], { type: "video/mp4" });
   } catch (e) { console.warn("[rec] finalize", e); return null; }
@@ -467,8 +510,8 @@ function frame(now) {
     if (countdownStart) {
       const sec = (now - countdownStart) / 1000;
       const cur = Math.ceil(3 - sec); // 3 → 2 → 1
-      if (cur !== lastTick && cur >= 1 && cur <= 3) { lastTick = cur; tone(620 + (3 - cur) * 140, 0, 0.13, "square", 0.3); }
-      if (sec >= 3) { tone(1320, 0, 0.2, "square", 0.32); goFlashUntil = now + 700; phase = "play"; phaseStart = now; lastSpawn = now; }
+      if (cur !== lastTick && cur >= 1 && cur <= 3) { lastTick = cur; playTone(620 + (3 - cur) * 140, 0.13, "square", 0.3); }
+      if (sec >= 3) { playTone(1320, 0.2, "square", 0.32); goFlashUntil = now + 700; phase = "play"; phaseStart = now; lastSpawn = now; }
     }
   }
 
