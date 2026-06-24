@@ -183,8 +183,7 @@ function applyResize() {
   let boxW = innerWidth, boxH = innerWidth * 16 / 9;
   if (boxH > innerHeight) { boxH = innerHeight; boxW = innerHeight * 9 / 16; }
   boxW = Math.floor(boxW); boxH = Math.floor(boxH);
-  // 백킹 해상도 ~720p(높이 1280)로 제한 — 고DPR/큰 폰 과해상도 방지(렌더·인코딩 부하↓)
-  DPR = Math.min(window.devicePixelRatio || 1, 2, 1280 / boxH);
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.floor(boxW * DPR), h = Math.floor(boxH * DPR);
   if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵
   canvas.style.width = boxW + "px"; canvas.style.height = boxH + "px";
@@ -253,7 +252,7 @@ function playKkamnolSting() {
 const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
-let rec = null, recChunks = [], recMime = "", recStartT = 0, recVTrack = null, recManual = false, lastCaptureT = 0;
+let rec = null, recChunks = [], recMime = "", recStartT = 0;
 let lastVideoUrl = null, lastExt = "webm";
 function pickMime() {
   const cands = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
@@ -262,19 +261,14 @@ function pickMime() {
 function startRecording() {
   if (!canvas.captureStream || !window.MediaRecorder) return false;
   try {
-    // iOS: 자동 캡처가 프레임을 불균일하게 떨궈 "라이브는 매끄러운데 녹화만 끊김" → 수동 프레임 공급(requestFrame)으로 균일화
-    let v = canvas.captureStream(0); // 0 = 수동 모드(자동 캡처 끔)
-    recVTrack = v.getVideoTracks()[0];
-    recManual = !!(recVTrack && typeof recVTrack.requestFrame === "function");
-    if (!recManual) { v = canvas.captureStream(30); recVTrack = null; } // requestFrame 미지원 → 자동 폴백
-    lastCaptureT = 0;
+    const v = canvas.captureStream(30);
     const tracks = [...v.getVideoTracks()];
     ensureAudio();
     audioDest = audioCtx.createMediaStreamDestination();
     masterGain.connect(audioDest);
     tracks.push(...audioDest.stream.getAudioTracks());
     recMime = pickMime();
-    rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 3_500_000 } : undefined);
+    rec = new MediaRecorder(new MediaStream(tracks), recMime ? { mimeType: recMime, videoBitsPerSecond: 6_000_000 } : undefined);
     recChunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
     rec.start(1000); // 1초마다 청크 플러시(중간 끊김에 강함)
@@ -335,9 +329,8 @@ function camTransform() {
 }
 function handTip(t) {
   if (!handLandmarker || !camOn || video.readyState < 2) return lastHandTip;
-  // detect를 ~22fps로 제한(매 프레임 추론이 메인스레드 최대 부하 → 녹화 끊김).
-  // 사이 프레임은 캐시된 위치 반환 → 뜰채는 디스플레이 fps로 매끄럽게.
-  if (t - lastDetectT < 55 || video.currentTime === lastVideoTime) return lastHandTip; // ~18fps
+  // 매 카메라 프레임(~30fps) detect. 사이 프레임은 캐시된 위치 반환(뜰채는 디스플레이 fps로 매끄럽게).
+  if (video.currentTime === lastVideoTime) return lastHandTip;
   lastDetectT = t; lastVideoTime = video.currentTime;
   let res;
   try { res = handLandmarker.detectForVideo(video, t); } catch { return lastHandTip; }
@@ -515,11 +508,6 @@ function frame(now) {
   }
 
   render(now, src);
-  // 녹화: 렌더 직후 프레임 수동 공급(~30fps 균일) — iOS 자동 캡처 불균일 보정
-  if (recManual && rec && rec.state === "recording" && now - lastCaptureT >= 32) {
-    lastCaptureT = now;
-    try { recVTrack.requestFrame(); } catch {}
-  }
   requestAnimationFrame(frame);
 }
 
