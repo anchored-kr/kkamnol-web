@@ -602,13 +602,13 @@ function renderEffects() {
 
 // 상단 중앙 정렬 트레이
 function renderTray() {
-  const fs = MIN * 0.032, bh = fs * 1.85, gap = MIN * 0.018;
+  const fs = MIN * 0.044, bh = fs * 1.8, gap = MIN * 0.02;
   ctx.font = `800 ${fs}px "Pretendard", system-ui, sans-serif`;
   const widths = collected.map((k) => ctx.measureText(traitLabel(k)).width + fs * 1.5);
   const total = widths.reduce((a, b) => a + b + gap, -gap);
 
   // 카운트 (중앙)
-  ctx.font = `900 ${MIN * 0.04}px "Pretendard", system-ui, sans-serif`;
+  ctx.font = `900 ${MIN * 0.046}px "Pretendard", system-ui, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillStyle = "#fff";
   ctx.fillText(`${collected.length} / 5`, W / 2, MIN * 0.055);
@@ -622,7 +622,7 @@ function renderTray() {
     rows[rows.length - 1].push(i);
     rowW[rowW.length - 1] += need;
   });
-  let y = MIN * 0.11;
+  let y = MIN * 0.13;
   rows.forEach((row, ri) => {
     let x = W / 2 - rowW[ri] / 2;
     row.forEach((i) => {
