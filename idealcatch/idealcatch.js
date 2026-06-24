@@ -253,7 +253,7 @@ function playKkamnolSting() {
 const playOutro = () => { ensureAudio(); tone(784, 0, 0.5, "triangle", 0.34); tone(1175, 0.12, 0.6, "triangle", 0.3); tone(1568, 0.26, 0.9, "sine", 0.26); };
 
 // ---------- 녹화 ----------
-let rec = null, recChunks = [], recMime = "", recStartT = 0;
+let rec = null, recChunks = [], recMime = "", recStartT = 0, recVTrack = null, recManual = false, lastCaptureT = 0;
 let lastVideoUrl = null, lastExt = "webm";
 function pickMime() {
   const cands = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
@@ -262,7 +262,12 @@ function pickMime() {
 function startRecording() {
   if (!canvas.captureStream || !window.MediaRecorder) return false;
   try {
-    const v = canvas.captureStream(24); // iOS: 24fps 고정이 30보다 균일(인코더 부하↓)
+    // iOS: 자동 캡처가 프레임을 불균일하게 떨궈 "라이브는 매끄러운데 녹화만 끊김" → 수동 프레임 공급(requestFrame)으로 균일화
+    let v = canvas.captureStream(0); // 0 = 수동 모드(자동 캡처 끔)
+    recVTrack = v.getVideoTracks()[0];
+    recManual = !!(recVTrack && typeof recVTrack.requestFrame === "function");
+    if (!recManual) { v = canvas.captureStream(30); recVTrack = null; } // requestFrame 미지원 → 자동 폴백
+    lastCaptureT = 0;
     const tracks = [...v.getVideoTracks()];
     ensureAudio();
     audioDest = audioCtx.createMediaStreamDestination();
@@ -510,6 +515,11 @@ function frame(now) {
   }
 
   render(now, src);
+  // 녹화: 렌더 직후 프레임 수동 공급(~30fps 균일) — iOS 자동 캡처 불균일 보정
+  if (recManual && rec && rec.state === "recording" && now - lastCaptureT >= 32) {
+    lastCaptureT = now;
+    try { recVTrack.requestFrame(); } catch {}
+  }
   requestAnimationFrame(frame);
 }
 
