@@ -171,7 +171,7 @@ let grabUntil = 0, grabColor = "#fff";
 let countdownStart = 0, lastTick = -1, goFlashUntil = 0;
 let flashUntil = 0, shakeUntil = 0; // ★ 깜놀 모먼트: 쇼크 핑크 플래시 + 스크린 셰이크
 
-let handLandmarker = null, camOn = false, lastVideoTime = -1;
+let handLandmarker = null, camOn = false, lastVideoTime = -1, lastDetectT = 0, lastHandTip = null;
 let bladePts = [];
 let pointer = { x: 0, y: 0, t: -9999 };
 let usingHandT = -9999;
@@ -179,11 +179,12 @@ let usingHandT = -9999;
 // ---------- 캔버스 ----------
 let pendingResize = false;
 function applyResize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
   // 9:16 숏폼 프레임 — 뷰포트 안에 contain(중앙). 녹화도 9:16로 깔끔.
   let boxW = innerWidth, boxH = innerWidth * 16 / 9;
   if (boxH > innerHeight) { boxH = innerHeight; boxW = innerHeight * 9 / 16; }
   boxW = Math.floor(boxW); boxH = Math.floor(boxH);
+  // 백킹 해상도 ~720p(높이 1280)로 제한 — 고DPR/큰 폰 과해상도 방지(렌더·인코딩 부하↓)
+  DPR = Math.min(window.devicePixelRatio || 1, 2, 1280 / boxH);
   const w = Math.floor(boxW * DPR), h = Math.floor(boxH * DPR);
   if (w === canvas.width && h === canvas.height) return; // 변화 없으면 스킵
   canvas.style.width = boxW + "px"; canvas.style.height = boxH + "px";
@@ -328,17 +329,19 @@ function camTransform() {
   return { vw, vh, scale, dw, dh, ox: (W - dw) / 2, oy: (H - dh) / 2 };
 }
 function handTip(t) {
-  if (!handLandmarker || !camOn || video.readyState < 2) return null;
-  if (video.currentTime === lastVideoTime) return null;
-  lastVideoTime = video.currentTime;
+  if (!handLandmarker || !camOn || video.readyState < 2) return lastHandTip;
+  // detect를 ~22fps로 제한(매 프레임 추론이 메인스레드 최대 부하 → 녹화 끊김).
+  // 사이 프레임은 캐시된 위치 반환 → 뜰채는 디스플레이 fps로 매끄럽게.
+  if (t - lastDetectT < 45 || video.currentTime === lastVideoTime) return lastHandTip;
+  lastDetectT = t; lastVideoTime = video.currentTime;
   let res;
-  try { res = handLandmarker.detectForVideo(video, t); } catch { return null; }
-  if (!res || !res.landmarks || !res.landmarks.length) return null;
-  // 검지 끝(landmark 8) — 뜰채 입구가 손가락 끝에 오게
-  const lm = res.landmarks[0][8];
+  try { res = handLandmarker.detectForVideo(video, t); } catch { return lastHandTip; }
+  if (!res || !res.landmarks || !res.landmarks.length) { lastHandTip = null; return null; }
+  const lm = res.landmarks[0][8]; // 검지 끝 — 뜰채 입구가 손가락 끝에
   const tr = camTransform();
-  if (!tr) return null;
-  return { x: W - (tr.ox + lm.x * tr.vw * tr.scale), y: tr.oy + lm.y * tr.vh * tr.scale };
+  if (!tr) return lastHandTip;
+  lastHandTip = { x: W - (tr.ox + lm.x * tr.vw * tr.scale), y: tr.oy + lm.y * tr.vh * tr.scale };
+  return lastHandTip;
 }
 
 // ---------- 게임 흐름 ----------
@@ -888,18 +891,17 @@ function renderNet(now, src) {
   // 그물 (앞쪽 림 → 바닥 한 점으로 모이는 망)
   const bag = R * 1.9;
   ctx.strokeStyle = "rgba(232,240,248,0.42)"; ctx.lineWidth = Math.max(1, MIN * 0.0016);
-  for (let k = 0; k <= 7; k++) {
-    const a = Math.PI * (k / 7);
+  for (let k = 0; k <= 4; k++) { // 그물 곡선 8→5 (프레임당 비용↓)
+    const a = Math.PI * (k / 4);
     const rx = -Math.cos(a) * R, ry = Math.sin(a) * R * 0.42;
     ctx.beginPath(); ctx.moveTo(rx, ry); ctx.quadraticCurveTo(rx * 0.35, bag * 0.7, 0, bag); ctx.stroke();
   }
   for (let yy = 0.42; yy < 1.0; yy += 0.27) {
     ctx.beginPath(); ctx.ellipse(0, bag * yy, R * (1 - yy * 0.6), R * 0.32 * (1 - yy * 0.4), 0, 0.15, Math.PI - 0.15); ctx.stroke();
   }
-  // 림(테)
+  // 림(테) — shadowBlur 제거(프레임당 글로우 비용↓), 솔리드 스트로크
   ctx.lineWidth = MIN * (scooping ? 0.017 : 0.012);
   ctx.strokeStyle = scooping ? "#fff" : "#eef3f8";
-  ctx.shadowBlur = MIN * (scooping ? 0.05 : 0.03); ctx.shadowColor = glow;
   ctx.beginPath(); ctx.ellipse(0, 0, R, R * 0.42, 0, 0, 6.2832); ctx.stroke();
   ctx.restore();
 }
